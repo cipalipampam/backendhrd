@@ -12,7 +12,7 @@ datasource db {
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
-  name      String?
+  nama      String?
   role     Role    @default(KARYAWAN)
   password  String
   createdAt DateTime @default(now())
@@ -26,14 +26,23 @@ enum Role {
 
 model Divisi{
   id        String   @id @default(cuid())
-  name      String   @unique
+  nama      String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Jabatan{
   id        String   @id @default(cuid())
-  name      String   @unique
+  nama      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Pelatihan{
+  id        String   @id @default(cuid())
+  nama      String
+  tanggal   DateTime
+  lokasi    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

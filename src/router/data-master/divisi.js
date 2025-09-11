@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
     try {
         const divisi = await prisma.divisi.findMany({
             select: {
-                name: true
+                nama: true
             }
         });
         res.json({
@@ -26,11 +26,11 @@ router.get('/', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
-    const { name } = req.body;
+    const { nama } = req.body;
     try {
         const divisi = await prisma.divisi.create({
             data: {
-                name
+                nama
             },
         });
         res.status(201).json(divisi);

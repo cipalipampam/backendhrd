@@ -6,15 +6,17 @@ const prisma = new PrismaClient();
 
 router.get('/', async (req, res) => {
     try {
-        const jabatan = await prisma.jabatan.findMany({
+        const pelatihan = await prisma.pelatihan.findMany({
             select: {
-                nama: true
+                nama: true,
+                tanggal: true,
+                lokasi: true
             }
         });
         res.json({
             status: 200,
-            message: 'Jabatan found',
-            data: jabatan
+            message: 'Pelatihan found',
+            data: pelatihan
         })
     } catch (error) {
         res.status(500).json({
@@ -26,14 +28,16 @@ router.get('/', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
-    const { nama } = req.body;
+    const { nama, tanggal, lokasi } = req.body;
     try {
-        const jabatan = await prisma.jabatan.create({
+        const pelatihan = await prisma.pelatihan.create({
             data: {
-                nama
+                nama,
+                tanggal,
+                lokasi
             },
         });
-        res.status(201).json(jabatan);
+        res.status(201).json(pelatihan);
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Internal server error" });
@@ -42,18 +46,20 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
     const { id } = req.params;
-    const { name } = req.body;
+    const { nama, tanggal, lokasi } = req.body;
 
     try {
-        const jabatan = await prisma.jabatan.update({
+        const pelatihan = await prisma.pelatihan.update({
             where: {
                 id: id
             },
             data: {
-                name
+                nama,
+                tanggal,
+                lokasi
             }
         });
-        res.json(jabatan)
+        res.json(pelatihan)
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Internal server error" });
@@ -63,14 +69,14 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        await prisma.jabatan.delete({
+        await prisma.pelatihan.delete({
             where: {
                 id: id
             }
         });
         res.json({
             status: 200,
-            message: `Jabatan ${id} deleted`,
+            message: `pelatihan ${id} deleted`,
         })
     } catch (error) {
         console.log(error);
