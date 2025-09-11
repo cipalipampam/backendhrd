@@ -1,19 +1,18 @@
 import express from "express";
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import {config} from "dotenv";
+import corsSetup from 'cors';
 
+import user from './router/data-master/user.js';
+
+config();
 const app = express();
-const port = 5000;
-
-const prisma = new PrismaClient();
-
 app.use(express.json());
+app.use(corsSetup());
 
-// ➜ Tambahkan ini:
-app.get("/", (req, res) => {
-  res.send("Server Express + Prisma sudah jalan!");
-});
+app.use('/api/user', user);
 
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`App listening on port http://localhost:${PORT}`)
+})
