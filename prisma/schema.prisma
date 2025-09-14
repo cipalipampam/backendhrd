@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,40 +8,117 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum Role {
+  KARYAWAN
+  HR
+}
+
+enum Gender {
+  Pria
+  Wanita
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
-  nama      String?
-  role     Role    @default(KARYAWAN)
+  role      Role     @default(KARYAWAN)
   password  String
+  karyawan  Karyawan?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-enum Role {
-  KARYAWAN
-  HRD
+model Departemen {
+  id        String     @id @default(cuid())
+  nama      String     @unique
+  Karyawan  Karyawan[] @relation("DepartemenOnKaryawan")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
-model Divisi{
-  id        String   @id @default(cuid())
-  nama      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Jabatan {
+  id        String     @id @default(cuid())
+  nama      String     @unique
+  Karyawan  Karyawan[] @relation("JabatanOnKaryawan")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
-model Jabatan{
-  id        String   @id @default(cuid())
-  nama      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model KPI {
+  id         String   @id @default(cuid())
+  year       Int
+  score      Float
+  notes      String?
+  karyawanId String
+  karyawan   Karyawan @relation(fields: [karyawanId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
-model Pelatihan{
-  id        String   @id @default(cuid())
+model Rating {
+  id         String   @id @default(cuid())
+  year       Int
+  score      Float
+  notes      String?
+  karyawanId String
+  karyawan   Karyawan @relation(fields: [karyawanId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Penghargaan {
+  id        String       @id @default(cuid())
+  nama      String
+  tahun     DateTime
+  Karyawan  Karyawan[]   @relation("PenghargaanOnKaryawan")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model Pelatihan {
+  id        String            @id @default(cuid())
   nama      String
   tanggal   DateTime
   lokasi    String
+  peserta   PelatihanDetail[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model PelatihanDetail {
+  id          String    @id @default(cuid())
+  pelatihanId String
+  karyawanId  String
+  skor        Float?
+  catatan     String?
+
+  pelatihan   Pelatihan @relation(fields: [pelatihanId], references: [id])
+  karyawan    Karyawan  @relation(fields: [karyawanId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([pelatihanId, karyawanId])
+}
+
+model Karyawan {
+  id               String            @id @default(cuid())
+  nama             String
+  gender           Gender
+  alamat           String?
+  no_telp          String?
+  tanggal_lahir    DateTime?
+  pendidikan       String
+  tanggal_masuk    DateTime
+  jalur_rekrut     String
+  penghargaan      Penghargaan[]    @relation("PenghargaanOnKaryawan")
+  Departemen       Departemen[]     @relation("DepartemenOnKaryawan")
+  Jabatan          Jabatan[]        @relation("JabatanOnKaryawan")
+  KPI              KPI[]            // 1 karyawan -> banyak KPI
+  Rating           Rating[]         // 1 karyawan -> banyak Rating
+  pelatihanDetail  PelatihanDetail[]
+  userId           String           @unique
+  user             User             @relation(fields: [userId], references: [id])
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 }

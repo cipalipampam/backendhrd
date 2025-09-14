@@ -6,15 +6,15 @@ const prisma = new PrismaClient();
 
 router.get('/', async (req, res) => {
     try {
-        const divisi = await prisma.divisi.findMany({
+        const departemen = await prisma.departemen.findMany({
             select: {
                 nama: true
             }
         });
         res.json({
             status: 200,
-            message: 'Divisi found',
-            data: divisi
+            message: 'Departemen found',
+            data: departemen
         })
     } catch (error) {
         res.status(500).json({
@@ -28,12 +28,12 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
     const { nama } = req.body;
     try {
-        const divisi = await prisma.divisi.create({
+        const departemen = await prisma.departemen.create({
             data: {
                 nama
             },
         });
-        res.status(201).json(divisi);
+        res.status(201).json(departemen);
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Internal server error" });
@@ -45,7 +45,7 @@ router.put('/:id', async (req, res) => {
     const { name } = req.body;
 
     try {
-        const divisi = await prisma.divisi.update({
+        const departemen = await prisma.departemen.update({
             where: {
                 id: id
             },
@@ -53,7 +53,7 @@ router.put('/:id', async (req, res) => {
                 name
             }
         });
-        res.json(divisi)
+        res.json(departemen)
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Internal server error" });
@@ -63,14 +63,14 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        await prisma.divisi.delete({
+        await prisma.departemen.delete({
             where: {
                 id: id
             }
         });
         res.json({
             status: 200,
-            message: `Divisi ${id} deleted`,
+            message: `Departemen ${id} deleted`,
         })
     } catch (error) {
         console.log(error);
