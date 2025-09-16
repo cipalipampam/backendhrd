@@ -6,14 +6,14 @@ CREATE TYPE "public"."Gender" AS ENUM ('Pria', 'Wanita');
 
 -- CreateTable
 CREATE TABLE "public"."User" (
-    "id" TEXT NOT NULL,
+    "username" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "role" "public"."Role" NOT NULL DEFAULT 'KARYAWAN',
     "password" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "User_pkey" PRIMARY KEY ("username")
 );
 
 -- CreateTable
@@ -177,7 +177,7 @@ ALTER TABLE "public"."PelatihanDetail" ADD CONSTRAINT "PelatihanDetail_pelatihan
 ALTER TABLE "public"."PelatihanDetail" ADD CONSTRAINT "PelatihanDetail_karyawanId_fkey" FOREIGN KEY ("karyawanId") REFERENCES "public"."Karyawan"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Karyawan" ADD CONSTRAINT "Karyawan_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."Karyawan" ADD CONSTRAINT "Karyawan_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("username") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."_DepartemenOnKaryawan" ADD CONSTRAINT "_DepartemenOnKaryawan_A_fkey" FOREIGN KEY ("A") REFERENCES "public"."Departemen"("id") ON DELETE CASCADE ON UPDATE CASCADE;

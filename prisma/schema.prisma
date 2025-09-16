@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  // directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -19,7 +19,7 @@ enum Gender {
 }
 
 model User {
-  id        String   @id @default(cuid())
+  username        String   @id
   email     String   @unique
   role      Role     @default(KARYAWAN)
   password  String
@@ -118,7 +118,7 @@ model Karyawan {
   Rating           Rating[]         // 1 karyawan -> banyak Rating
   pelatihanDetail  PelatihanDetail[]
   userId           String           @unique
-  user             User             @relation(fields: [userId], references: [id])
+  user             User             @relation(fields: [userId], references: [username])
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 }

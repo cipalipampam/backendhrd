@@ -7,10 +7,13 @@ const router = Router();
 const prisma = new PrismaClient();
 
 router.use("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, username, password } = req.body;
+  const identifier = email || username;
 
-  const user = await prisma.user.findUnique({
-    where: { email },
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [{ email: identifier }, { username: identifier }],
+    },
   });
 
   if (!user) {
@@ -23,21 +26,21 @@ router.use("/login", async (req, res) => {
 
   if (isPasswordValid) {
     const payload = {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-    }
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    };
 
-    const secret = process.env.JWT_SECRET
+    const secret = process.env.JWT_SECRET;
 
-    const expiresIn = 60 * 60 * 1
+    const expiresIn = 60 * 60 * 1;
 
-    const token = jwt.sign(payload, secret, { expiresIn: expiresIn })
+    const token = jwt.sign(payload, secret, { expiresIn: expiresIn });
     return res.json({
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        token,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      token,
     });
   } else {
     return res.status(401).json({

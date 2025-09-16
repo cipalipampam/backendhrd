@@ -42,6 +42,7 @@ async function main() {
     where: { email: 'hr@hr.com' },        // samakan email
     update: {},
     create: {
+      username: 'hr',                  
       email: 'hr@gmail.com',
       password: await bcrypt.hash('hr', 10),
       role: 'HR'
@@ -52,6 +53,7 @@ async function main() {
     where: { email: 'karyawan@gmail.com' },
     update: {},
     create: {
+      username: 'karyawan',
       email: 'karyawan@gmail.com',
       password: await bcrypt.hash('karyawan', 10),
       role: 'KARYAWAN'
@@ -59,7 +61,7 @@ async function main() {
   })
 
   const karyawan1 = await prisma.karyawan.upsert({
-    where: { userId: user1.id },
+    where: { userId: user1.username },
     update: {},
     create: {
       nama: 'HRD',
@@ -67,7 +69,7 @@ async function main() {
       pendidikan: 'Magister',
       tanggal_masuk: new Date('2022-01-10'),
       jalur_rekrut: 'Wawancara',
-      userId: user1.id,
+      userId: user1.username,
       Departemen: {
         connect: [{ nama: 'HR' }]
       },
@@ -78,7 +80,7 @@ async function main() {
   })
 
   const karyawan2 = await prisma.karyawan.upsert({
-    where: { userId: user2.id },
+    where: { userId: user2.username },
     update: {},
     create: {
       nama: 'Karyawan',
@@ -86,7 +88,7 @@ async function main() {
       pendidikan: 'Sarjana',
       tanggal_masuk: new Date('2023-03-01'),
       jalur_rekrut: 'Undangan',
-      userId: user2.id,
+      userId: user2.username,
       Departemen: {
         connect: [{ nama: 'Technology' }]
       },
