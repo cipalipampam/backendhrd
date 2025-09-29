@@ -1,10 +1,11 @@
-import { PrismaClient} from "@prisma/client";
+import prisma from "../../prismaClient.js";
 import { Router } from "express";
+import { allowRoles } from "../../middleware/role-authorization.js";
+import { ROLES } from "../../constants/roles.js";
 
 const router = Router()
-const prisma = new PrismaClient();
 
-router.get('/', async (req, res) => {
+router.get('/', allowRoles(ROLES.HR), async (req, res) => {
     try {
         const departemen = await prisma.departemen.findMany({
             select: {
@@ -25,53 +26,53 @@ router.get('/', async (req, res) => {
     }
 })
 
-router.post('/', async (req, res) => {
+router.post('/', allowRoles(ROLES.HR), async (req, res) => {
     const { nama } = req.body;
+    if (!nama) {
+        return res.status(400).json({ message: 'nama wajib diisi' });
+    }
     try {
         const departemen = await prisma.departemen.create({
             data: {
                 nama
             },
         });
-        res.status(201).json(departemen);
+        res.status(201).json({ status: 201, message: 'Departemen created', data: departemen });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Internal server error" });
     }
 })
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', allowRoles(ROLES.HR), async (req, res) => {
     const { id } = req.params;
-    const { name } = req.body;
+    const { nama } = req.body;
 
     try {
+        const existing = await prisma.departemen.findUnique({ where: { id } });
+        if (!existing) {
+            return res.status(404).json({ message: `Departemen ${id} not found` });
+        }
         const departemen = await prisma.departemen.update({
-            where: {
-                id: id
-            },
-            data: {
-                name
-            }
+            where: { id },
+            data: { nama }
         });
-        res.json(departemen)
+        res.json({ status: 200, message: 'Departemen updated', data: departemen })
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Internal server error" });
     }
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', allowRoles(ROLES.HR), async (req, res) => {
     try {
         const { id } = req.params;
-        await prisma.departemen.delete({
-            where: {
-                id: id
-            }
-        });
-        res.json({
-            status: 200,
-            message: `Departemen ${id} deleted`,
-        })
+        const existing = await prisma.departemen.findUnique({ where: { id } });
+        if (!existing) {
+            return res.status(404).json({ message: `Departemen ${id} not found` });
+        }
+        await prisma.departemen.delete({ where: { id } });
+        res.json({ status: 200, message: `Departemen ${id} deleted` })
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Internal server error" });

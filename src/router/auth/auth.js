@@ -1,14 +1,18 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "../../prismaClient.js";
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { accessValidation } from "../../middleware/access-validation.js";
 
 const router = Router();
-const prisma = new PrismaClient();
 
-router.use("/login", async (req, res) => {
+router.post("/login", async (req, res) => {
   const { email, username, password } = req.body;
   const identifier = email || username;
+
+  if (!identifier || !password) {
+    return res.status(400).json({ message: "Email/username dan password wajib diisi" });
+  }
 
   const user = await prisma.user.findFirst({
     where: {
@@ -17,9 +21,7 @@ router.use("/login", async (req, res) => {
   });
 
   if (!user) {
-    res.status(404).json({
-      message: "User not found",
-    });
+    return res.status(404).json({ message: "User not found" });
   }
 
   const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -32,6 +34,9 @@ router.use("/login", async (req, res) => {
     };
 
     const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      return res.status(500).json({ message: "Server misconfigured: JWT_SECRET missing" });
+    }
 
     const expiresIn = 60 * 60 * 1;
 
@@ -45,6 +50,32 @@ router.use("/login", async (req, res) => {
   } else {
     return res.status(401).json({
       message: "Invalid email or password",
+    });
+  }
+});
+
+// Get current user info from token
+router.get("/me", accessValidation, async (req, res) => {
+  try {
+    const user = req.user; // From JWT token
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    res.json({
+      status: 200,
+      message: "User info found",
+      data: {
+        username: user.username,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
     });
   }
 });

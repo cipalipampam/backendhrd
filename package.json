@@ -1,7 +1,13 @@
 {
+  "type": "module",
   "scripts": {
+    "prestart": "npx prisma generate && npx prisma migrate deploy && npm run seed",
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "predev": "npx prisma generate && npx prisma migrate deploy && npm run seed",
+    "dev": "nodemon src/index.js",
+    "seed": "node prisma/seed.js",
+    "train:decision": "node src/jobs/retrain-decision-tree.job.js",
+    "score:nightly": "node src/jobs/nightly-scoring.job.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
@@ -10,6 +16,7 @@
     "@prisma/client": "^6.16.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
+    "mysql2": "^3.11.3",
     "express": "^5.1.0",
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2"

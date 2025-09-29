@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider  = "mysql"
   url       = env("DATABASE_URL")
   // directUrl = env("DIRECT_URL")
 }
@@ -53,6 +53,8 @@ model KPI {
   karyawan   Karyawan @relation(fields: [karyawanId], references: [id])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  @@unique([karyawanId, year])
 }
 
 model Rating {
@@ -64,6 +66,8 @@ model Rating {
   karyawan   Karyawan @relation(fields: [karyawanId], references: [id])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  @@unique([karyawanId, year])
 }
 
 model Penghargaan {
@@ -121,4 +125,38 @@ model Karyawan {
   user             User             @relation(fields: [userId], references: [username])
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
+}
+
+// --- XGBoost Promotion AI Models ---
+
+model ModelVersion {
+  id               String                   @id @default(cuid())
+  name             String
+  version          Int
+  type             String
+  storagePath      String
+  metrics          Json?
+  createdAt        DateTime                 @default(now())
+  FeatureSnapshots FeatureSnapshot[]
+  Recommendations  PromotionRecommendation[]
+}
+
+model FeatureSnapshot {
+  id             String       @id @default(cuid())
+  karyawanId     String
+  features       Json
+  modelVersionId String
+  modelVersion   ModelVersion @relation(fields: [modelVersionId], references: [id])
+  createdAt      DateTime     @default(now())
+}
+
+model PromotionRecommendation {
+  id             String       @id @default(cuid())
+  karyawanId     String
+  modelVersionId String
+  modelVersion   ModelVersion @relation(fields: [modelVersionId], references: [id])
+  score          Float
+  recommend      Boolean
+  reasons        Json?
+  createdAt      DateTime     @default(now())
 }

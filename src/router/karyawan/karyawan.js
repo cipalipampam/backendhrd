@@ -1,17 +1,33 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "../../prismaClient.js";
 import { Router } from "express";
 import bcrypt from "bcrypt";
-import { body, validationResult } from "express-validator"; 
+import { body, validationResult } from "express-validator";
+import { allowRoles } from "../../middleware/role-authorization.js";
+import { ROLES } from "../../constants/roles.js"; 
 
 const router = Router();
-const prisma = new PrismaClient();
 
-router.get("/", async (req, res) => {
+// Get all karyawan (HR only)
+router.get("/", allowRoles(ROLES.HR), async (req, res) => {
   try {
     const karyawan = await prisma.karyawan.findMany({
       include: {
         Departemen: true,
         Jabatan: true,
+        KPI: true,
+        Rating: true,
+        pelatihanDetail: {
+          include: {
+            pelatihan: true
+          }
+        },
+        user: {
+          select: {
+            username: true,
+            email: true,
+            role: true
+          }
+        }
       },
     });
 
@@ -52,17 +68,179 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+// Get current user's karyawan data
+router.get("/me", async (req, res) => {
+  try {
+    const user = req.user; // From JWT token
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const karyawan = await prisma.karyawan.findUnique({
+      where: { userId: user.username },
+      include: {
+        Departemen: true,
+        Jabatan: true,
+        KPI: true,
+        Rating: true,
+        pelatihanDetail: {
+          include: {
+            pelatihan: true
+          }
+        },
+        user: {
+          select: {
+            username: true,
+            email: true,
+            role: true
+          }
+        }
+      }
+    });
+
+    if (!karyawan) {
+      return res.status(404).json({
+        status: 404,
+        message: "Karyawan data not found for this user",
+      });
+    }
+
+    const now = new Date();
+
+    // Hitung umur
+    let umur = null;
+    if (karyawan.tanggal_lahir) {
+      const diff = now - new Date(karyawan.tanggal_lahir);
+      umur = Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000));
+    }
+
+    // Hitung lama masa kerja
+    const diffKerja = now - new Date(karyawan.tanggal_masuk);
+    const masaKerjaTahun = Math.floor(
+      diffKerja / (365.25 * 24 * 60 * 60 * 1000)
+    );
+
+    const data = {
+      ...karyawan,
+      umur,
+      masaKerja: masaKerjaTahun,
+    };
+
+
+    res.json({
+      status: 200,
+      message: "Karyawan data found",
+      data,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+});
+
+// Update current user's profile
+router.put("/me", async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { alamat, no_telp } = req.body;
+
+    const karyawan = await prisma.karyawan.update({
+      where: { userId: user.username },
+      data: {
+        alamat,
+        no_telp,
+      },
+      include: {
+        Departemen: true,
+        Jabatan: true,
+        user: {
+          select: {
+            username: true,
+            email: true,
+            role: true
+          }
+        }
+      }
+    });
+
+    res.json({
+      status: 200,
+      message: "Profile updated successfully",
+      data: karyawan,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+});
+
+router.get("/:id", allowRoles(ROLES.HR), async (req, res) => {
   const { id } = req.params;
   try {
-    const user = await prisma.user.findUnique({
+    // Cari Karyawan berdasarkan PK Karyawan.id
+    const karyawan = await prisma.karyawan.findUnique({
       where: { id },
-      include: { karyawan: true },
+      include: { 
+        Departemen: true, 
+        Jabatan: true, 
+        KPI: true,
+        Rating: true,
+        pelatihanDetail: {
+          include: {
+            pelatihan: true
+          }
+        },
+        user: {
+          select: {
+            username: true,
+            email: true,
+            role: true
+          }
+        }
+      },
     });
+    if (!karyawan) {
+      return res.status(404).json({
+        status: 404,
+        message: `Karyawan ${id} tidak ditemukan`,
+      });
+    }
+
+    const now = new Date();
+
+    // Hitung umur
+    let umur = null;
+    if (karyawan.tanggal_lahir) {
+      const diff = now - new Date(karyawan.tanggal_lahir);
+      umur = Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000));
+    }
+
+    // Hitung lama masa kerja
+    const diffKerja = now - new Date(karyawan.tanggal_masuk);
+    const masaKerjaTahun = Math.floor(
+      diffKerja / (365.25 * 24 * 60 * 60 * 1000)
+    );
+
+    const data = {
+      ...karyawan,
+      umur,
+      masaKerja: masaKerjaTahun,
+    };
+
     res.json({
       status: 200,
       message: `Karyawan ${id} found`,
-      data: user,
+      data,
     });
   } catch (error) {
     res.status(500).json({
@@ -75,6 +253,7 @@ router.get("/:id", async (req, res) => {
 
 router.post(
   "/",
+  allowRoles(ROLES.HR),
   [
     body("username").trim().notEmpty().withMessage("Username wajib diisi"),
     body("email").isEmail().withMessage("Format email tidak valid"),
