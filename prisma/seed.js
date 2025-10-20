@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcrypt'
+import { randomUUID } from 'crypto'
+
 const prisma = new PrismaClient()
 
 async function main() {
@@ -10,23 +12,20 @@ async function main() {
     'Sales & Marketing',
     'Operations',
     'Technology',
-    'Analytics',
-    'R&D',
-    'Procurement',
     'Finance',
-    'HR',
-    'Legal',
-    'Customer Service',
-    'Quality Assurance',
-    'Production',
-    'Logistics'
+    'HR'
   ]
+  
   await Promise.all(
     departemenNames.map(nama =>
       prisma.departemen.upsert({
         where: { nama },
         update: {},
-        create: { nama }
+        create: { 
+          id: randomUUID(),
+          nama,
+          updatedAt: new Date()
+        }
       })
     )
   )
@@ -37,24 +36,21 @@ async function main() {
     'Manager',
     'Staff',
     'Supervisor',
-    'Senior Manager',
-    'Director',
     'Analyst',
     'Developer',
-    'Designer',
-    'Coordinator',
-    'Specialist',
-    'Lead',
-    'Senior Staff',
-    'Junior Staff',
-    'Intern'
+    'Specialist'
   ]
+  
   await Promise.all(
     jabatanNames.map(nama =>
       prisma.jabatan.upsert({
         where: { nama },
         update: {},
-        create: { nama }
+        create: { 
+          id: randomUUID(),
+          nama,
+          updatedAt: new Date()
+        }
       })
     )
   )
@@ -79,24 +75,6 @@ async function main() {
         jalur_rekrut: 'Headhunter',
         departemen: 'HR',
         jabatan: 'Manager'
-      }
-    },
-    {
-      username: 'hr_specialist',
-      email: 'hr.specialist@company.com',
-      password: 'hr123',
-      role: 'HR',
-      karyawan: {
-        nama: 'Michael Chen',
-        gender: 'Pria',
-        alamat: 'Jl. Thamrin No. 456, Jakarta',
-        no_telp: '081234567891',
-        tanggal_lahir: new Date('1990-08-22'),
-        pendidikan: 'Sarjana Psikologi',
-        tanggal_masuk: new Date('2021-03-10'),
-        jalur_rekrut: 'Job Fair',
-        departemen: 'HR',
-        jabatan: 'Specialist'
       }
     },
     // Karyawan Users
@@ -155,24 +133,6 @@ async function main() {
       }
     },
     {
-      username: 'sari_dewi',
-      email: 'sari.dewi@company.com',
-      password: 'karyawan123',
-      role: 'KARYAWAN',
-      karyawan: {
-        nama: 'Sari Dewi',
-        gender: 'Wanita',
-        alamat: 'Jl. Kebayoran No. 987, Jakarta',
-        no_telp: '081234567895',
-        tanggal_lahir: new Date('1993-11-30'),
-        pendidikan: 'Sarjana Desain Komunikasi Visual',
-        tanggal_masuk: new Date('2022-08-20'),
-        jalur_rekrut: 'Portfolio',
-        departemen: 'Technology',
-        jabatan: 'Designer'
-      }
-    },
-    {
       username: 'ahmad_rizki',
       email: 'ahmad.rizki@company.com',
       password: 'karyawan123',
@@ -189,24 +149,6 @@ async function main() {
         departemen: 'Operations',
         jabatan: 'Supervisor'
       }
-    },
-    {
-      username: 'lisa_wong',
-      email: 'lisa.wong@company.com',
-      password: 'karyawan123',
-      role: 'KARYAWAN',
-      karyawan: {
-        nama: 'Lisa Wong',
-        gender: 'Wanita',
-        alamat: 'Jl. Menteng No. 258, Jakarta',
-        no_telp: '081234567897',
-        tanggal_lahir: new Date('1989-09-08'),
-        pendidikan: 'Magister Data Science',
-        tanggal_masuk: new Date('2021-12-01'),
-        jalur_rekrut: 'Conference',
-        departemen: 'Analytics',
-        jabatan: 'Lead'
-      }
     }
   ]
 
@@ -216,20 +158,22 @@ async function main() {
   for (const userData of users) {
     const user = await prisma.user.upsert({
       where: { email: userData.email },
-    update: {},
-    create: {
+      update: {},
+      create: {
         username: userData.username,
         email: userData.email,
         password: await bcrypt.hash(userData.password, 10),
-        role: userData.role
+        role: userData.role,
+        updatedAt: new Date()
       }
     })
     createdUsers.push(user)
 
     const karyawan = await prisma.karyawan.upsert({
       where: { userId: user.username },
-    update: {},
-    create: {
+      update: {},
+      create: {
+        id: randomUUID(),
         nama: userData.karyawan.nama,
         gender: userData.karyawan.gender,
         alamat: userData.karyawan.alamat,
@@ -239,10 +183,11 @@ async function main() {
         tanggal_masuk: userData.karyawan.tanggal_masuk,
         jalur_rekrut: userData.karyawan.jalur_rekrut,
         userId: user.username,
-      Departemen: {
+        updatedAt: new Date(),
+        departemen: {
           connect: [{ nama: userData.karyawan.departemen }]
-      },
-      Jabatan: {
+        },
+        jabatan: {
           connect: [{ nama: userData.karyawan.jabatan }]
         }
       }
@@ -259,48 +204,31 @@ async function main() {
     { karyawanId: createdKaryawan[0].id, year: 2023, score: 88.0, notes: 'Peningkatan performa yang signifikan' },
     { karyawanId: createdKaryawan[0].id, year: 2024, score: 92.5, notes: 'Exceeded expectations' },
     
-    // Michael Chen (HR Specialist)
-    { karyawanId: createdKaryawan[1].id, year: 2021, score: 82.0, notes: 'Good performance for first year' },
-    { karyawanId: createdKaryawan[1].id, year: 2022, score: 86.5, notes: 'Consistent improvement' },
-    { karyawanId: createdKaryawan[1].id, year: 2023, score: 89.0, notes: 'Excellent work' },
-    { karyawanId: createdKaryawan[1].id, year: 2024, score: 91.5, notes: 'Outstanding performance' },
-    
     // John Doe (Developer)
-    { karyawanId: createdKaryawan[2].id, year: 2022, score: 78.0, notes: 'Learning phase, good progress' },
-    { karyawanId: createdKaryawan[2].id, year: 2023, score: 85.0, notes: 'Significant improvement' },
-    { karyawanId: createdKaryawan[2].id, year: 2024, score: 88.5, notes: 'Strong technical skills' },
+    { karyawanId: createdKaryawan[1].id, year: 2022, score: 78.0, notes: 'Learning phase, good progress' },
+    { karyawanId: createdKaryawan[1].id, year: 2023, score: 85.0, notes: 'Significant improvement' },
+    { karyawanId: createdKaryawan[1].id, year: 2024, score: 88.5, notes: 'Strong technical skills' },
     
     // Jane Smith (Sales Manager)
-    { karyawanId: createdKaryawan[3].id, year: 2021, score: 90.0, notes: 'Excellent sales performance' },
-    { karyawanId: createdKaryawan[3].id, year: 2022, score: 93.5, notes: 'Exceeded sales targets' },
-    { karyawanId: createdKaryawan[3].id, year: 2023, score: 95.0, notes: 'Outstanding leadership' },
-    { karyawanId: createdKaryawan[3].id, year: 2024, score: 96.5, notes: 'Top performer' },
+    { karyawanId: createdKaryawan[2].id, year: 2021, score: 90.0, notes: 'Excellent sales performance' },
+    { karyawanId: createdKaryawan[2].id, year: 2022, score: 93.5, notes: 'Exceeded sales targets' },
+    { karyawanId: createdKaryawan[2].id, year: 2023, score: 95.0, notes: 'Outstanding leadership' },
+    { karyawanId: createdKaryawan[2].id, year: 2024, score: 96.5, notes: 'Top performer' },
     
     // Budi Santoso (Finance Analyst)
-    { karyawanId: createdKaryawan[4].id, year: 2023, score: 87.0, notes: 'Strong analytical skills' },
-    { karyawanId: createdKaryawan[4].id, year: 2024, score: 89.5, notes: 'Excellent attention to detail' },
-    
-    // Sari Dewi (Designer)
-    { karyawanId: createdKaryawan[5].id, year: 2022, score: 84.0, notes: 'Creative and innovative' },
-    { karyawanId: createdKaryawan[5].id, year: 2023, score: 87.5, notes: 'Great design work' },
-    { karyawanId: createdKaryawan[5].id, year: 2024, score: 90.0, notes: 'Outstanding creativity' },
+    { karyawanId: createdKaryawan[3].id, year: 2023, score: 87.0, notes: 'Strong analytical skills' },
+    { karyawanId: createdKaryawan[3].id, year: 2024, score: 89.5, notes: 'Excellent attention to detail' },
     
     // Ahmad Rizki (Operations Supervisor)
-    { karyawanId: createdKaryawan[6].id, year: 2020, score: 83.0, notes: 'Good operational management' },
-    { karyawanId: createdKaryawan[6].id, year: 2021, score: 86.0, notes: 'Improved efficiency' },
-    { karyawanId: createdKaryawan[6].id, year: 2022, score: 88.5, notes: 'Strong leadership' },
-    { karyawanId: createdKaryawan[6].id, year: 2023, score: 91.0, notes: 'Excellent team management' },
-    { karyawanId: createdKaryawan[6].id, year: 2024, score: 93.5, notes: 'Outstanding performance' },
-    
-    // Lisa Wong (Analytics Lead)
-    { karyawanId: createdKaryawan[7].id, year: 2021, score: 89.0, notes: 'Strong analytical capabilities' },
-    { karyawanId: createdKaryawan[7].id, year: 2022, score: 92.0, notes: 'Excellent data insights' },
-    { karyawanId: createdKaryawan[7].id, year: 2023, score: 94.5, notes: 'Outstanding data analysis' },
-    { karyawanId: createdKaryawan[7].id, year: 2024, score: 96.0, notes: 'Top analytics performer' }
+    { karyawanId: createdKaryawan[4].id, year: 2020, score: 83.0, notes: 'Good operational management' },
+    { karyawanId: createdKaryawan[4].id, year: 2021, score: 86.0, notes: 'Improved efficiency' },
+    { karyawanId: createdKaryawan[4].id, year: 2022, score: 88.5, notes: 'Strong leadership' },
+    { karyawanId: createdKaryawan[4].id, year: 2023, score: 91.0, notes: 'Excellent team management' },
+    { karyawanId: createdKaryawan[4].id, year: 2024, score: 93.5, notes: 'Outstanding performance' }
   ]
 
   for (const kpi of kpiData) {
-    await prisma.kPI.upsert({
+    await prisma.kpi.upsert({
       where: {
         karyawanId_year: {
           karyawanId: kpi.karyawanId,
@@ -308,7 +236,11 @@ async function main() {
         }
       },
       update: {},
-      create: kpi
+      create: {
+        id: randomUUID(),
+        ...kpi,
+        updatedAt: new Date()
+      }
     })
   }
   console.log('✅ KPI data created')
@@ -320,44 +252,27 @@ async function main() {
     { karyawanId: createdKaryawan[0].id, year: 2023, score: 4.4, notes: 'Improved team management' },
     { karyawanId: createdKaryawan[0].id, year: 2024, score: 4.6, notes: 'Excellent HR management' },
     
-    // Michael Chen
-    { karyawanId: createdKaryawan[1].id, year: 2021, score: 4.0, notes: 'Good potential' },
-    { karyawanId: createdKaryawan[1].id, year: 2022, score: 4.2, notes: 'Strong work ethic' },
-    { karyawanId: createdKaryawan[1].id, year: 2023, score: 4.4, notes: 'Excellent specialist skills' },
-    { karyawanId: createdKaryawan[1].id, year: 2024, score: 4.5, notes: 'Outstanding performance' },
-    
     // John Doe
-    { karyawanId: createdKaryawan[2].id, year: 2022, score: 3.8, notes: 'Good technical skills' },
-    { karyawanId: createdKaryawan[2].id, year: 2023, score: 4.1, notes: 'Improved problem solving' },
-    { karyawanId: createdKaryawan[2].id, year: 2024, score: 4.3, notes: 'Strong developer' },
+    { karyawanId: createdKaryawan[1].id, year: 2022, score: 3.8, notes: 'Good technical skills' },
+    { karyawanId: createdKaryawan[1].id, year: 2023, score: 4.1, notes: 'Improved problem solving' },
+    { karyawanId: createdKaryawan[1].id, year: 2024, score: 4.3, notes: 'Strong developer' },
     
     // Jane Smith
-    { karyawanId: createdKaryawan[3].id, year: 2021, score: 4.5, notes: 'Excellent sales results' },
-    { karyawanId: createdKaryawan[3].id, year: 2022, score: 4.6, notes: 'Outstanding sales performance' },
-    { karyawanId: createdKaryawan[3].id, year: 2023, score: 4.7, notes: 'Top sales manager' },
-    { karyawanId: createdKaryawan[3].id, year: 2024, score: 4.8, notes: 'Exceptional leadership' },
+    { karyawanId: createdKaryawan[2].id, year: 2021, score: 4.5, notes: 'Excellent sales results' },
+    { karyawanId: createdKaryawan[2].id, year: 2022, score: 4.6, notes: 'Outstanding sales performance' },
+    { karyawanId: createdKaryawan[2].id, year: 2023, score: 4.7, notes: 'Top sales manager' },
+    { karyawanId: createdKaryawan[2].id, year: 2024, score: 4.8, notes: 'Exceptional leadership' },
     
     // Budi Santoso
-    { karyawanId: createdKaryawan[4].id, year: 2023, score: 4.2, notes: 'Good analytical work' },
-    { karyawanId: createdKaryawan[4].id, year: 2024, score: 4.4, notes: 'Excellent financial analysis' },
-    
-    // Sari Dewi
-    { karyawanId: createdKaryawan[5].id, year: 2022, score: 4.1, notes: 'Creative designer' },
-    { karyawanId: createdKaryawan[5].id, year: 2023, score: 4.3, notes: 'Great design work' },
-    { karyawanId: createdKaryawan[5].id, year: 2024, score: 4.5, notes: 'Outstanding creativity' },
+    { karyawanId: createdKaryawan[3].id, year: 2023, score: 4.2, notes: 'Good analytical work' },
+    { karyawanId: createdKaryawan[3].id, year: 2024, score: 4.4, notes: 'Excellent financial analysis' },
     
     // Ahmad Rizki
-    { karyawanId: createdKaryawan[6].id, year: 2020, score: 4.0, notes: 'Good operational skills' },
-    { karyawanId: createdKaryawan[6].id, year: 2021, score: 4.2, notes: 'Improved efficiency' },
-    { karyawanId: createdKaryawan[6].id, year: 2022, score: 4.3, notes: 'Strong supervision' },
-    { karyawanId: createdKaryawan[6].id, year: 2023, score: 4.5, notes: 'Excellent team leadership' },
-    { karyawanId: createdKaryawan[6].id, year: 2024, score: 4.6, notes: 'Outstanding supervisor' },
-    
-    // Lisa Wong
-    { karyawanId: createdKaryawan[7].id, year: 2021, score: 4.4, notes: 'Strong analytical skills' },
-    { karyawanId: createdKaryawan[7].id, year: 2022, score: 4.5, notes: 'Excellent data insights' },
-    { karyawanId: createdKaryawan[7].id, year: 2023, score: 4.6, notes: 'Outstanding analytics' },
-    { karyawanId: createdKaryawan[7].id, year: 2024, score: 4.7, notes: 'Top analytics lead' }
+    { karyawanId: createdKaryawan[4].id, year: 2020, score: 4.0, notes: 'Good operational skills' },
+    { karyawanId: createdKaryawan[4].id, year: 2021, score: 4.2, notes: 'Improved efficiency' },
+    { karyawanId: createdKaryawan[4].id, year: 2022, score: 4.3, notes: 'Strong supervision' },
+    { karyawanId: createdKaryawan[4].id, year: 2023, score: 4.5, notes: 'Excellent team leadership' },
+    { karyawanId: createdKaryawan[4].id, year: 2024, score: 4.6, notes: 'Outstanding supervisor' }
   ]
 
   for (const rating of ratingData) {
@@ -369,7 +284,11 @@ async function main() {
         }
       },
       update: {},
-      create: rating
+      create: {
+        id: randomUUID(),
+        ...rating,
+        updatedAt: new Date()
+      }
     })
   }
   console.log('✅ Rating data created')
@@ -382,26 +301,8 @@ async function main() {
       lokasi: 'Jakarta Convention Center',
       peserta: [
         { karyawanId: createdKaryawan[0].id, skor: 95, catatan: 'Excellent leadership potential' },
-        { karyawanId: createdKaryawan[3].id, skor: 92, catatan: 'Strong leadership skills' },
-        { karyawanId: createdKaryawan[6].id, skor: 88, catatan: 'Good management potential' }
-      ]
-    },
-    {
-      nama: 'Advanced Data Analytics',
-      tanggal: new Date('2024-02-20'),
-      lokasi: 'Online Training Platform',
-      peserta: [
-        { karyawanId: createdKaryawan[7].id, skor: 98, catatan: 'Outstanding analytical skills' },
-        { karyawanId: createdKaryawan[4].id, skor: 85, catatan: 'Good understanding of analytics' }
-      ]
-    },
-    {
-      nama: 'Digital Marketing Strategy',
-      tanggal: new Date('2024-03-10'),
-      lokasi: 'Bandung Training Center',
-      peserta: [
-        { karyawanId: createdKaryawan[3].id, skor: 90, catatan: 'Great marketing insights' },
-        { karyawanId: createdKaryawan[5].id, skor: 87, catatan: 'Good creative approach' }
+        { karyawanId: createdKaryawan[2].id, skor: 92, catatan: 'Strong leadership skills' },
+        { karyawanId: createdKaryawan[4].id, skor: 88, catatan: 'Good management potential' }
       ]
     },
     {
@@ -409,8 +310,7 @@ async function main() {
       tanggal: new Date('2024-04-05'),
       lokasi: 'Jakarta Tech Hub',
       peserta: [
-        { karyawanId: createdKaryawan[2].id, skor: 93, catatan: 'Excellent technical skills' },
-        { karyawanId: createdKaryawan[5].id, skor: 82, catatan: 'Good design integration' }
+        { karyawanId: createdKaryawan[1].id, skor: 93, catatan: 'Excellent technical skills' }
       ]
     },
     {
@@ -418,55 +318,32 @@ async function main() {
       tanggal: new Date('2024-05-12'),
       lokasi: 'Jakarta Financial Center',
       peserta: [
-        { karyawanId: createdKaryawan[4].id, skor: 91, catatan: 'Strong financial acumen' },
+        { karyawanId: createdKaryawan[3].id, skor: 91, catatan: 'Strong financial acumen' },
         { karyawanId: createdKaryawan[0].id, skor: 86, catatan: 'Good understanding of finance' }
-      ]
-    },
-    {
-      nama: 'Project Management Certification',
-      tanggal: new Date('2024-06-18'),
-      lokasi: 'Surabaya Business Center',
-      peserta: [
-        { karyawanId: createdKaryawan[6].id, skor: 89, catatan: 'Good project management skills' },
-        { karyawanId: createdKaryawan[1].id, skor: 87, catatan: 'Solid project coordination' }
-      ]
-    },
-    {
-      nama: 'UI/UX Design Workshop',
-      tanggal: new Date('2024-07-25'),
-      lokasi: 'Jakarta Design Studio',
-      peserta: [
-        { karyawanId: createdKaryawan[5].id, skor: 96, catatan: 'Outstanding design skills' },
-        { karyawanId: createdKaryawan[2].id, skor: 84, catatan: 'Good technical implementation' }
-      ]
-    },
-    {
-      nama: 'Operations Excellence',
-      tanggal: new Date('2024-08-30'),
-      lokasi: 'Jakarta Operations Center',
-      peserta: [
-        { karyawanId: createdKaryawan[6].id, skor: 94, catatan: 'Excellent operational knowledge' },
-        { karyawanId: createdKaryawan[1].id, skor: 88, catatan: 'Good process understanding' }
       ]
     }
   ]
 
   for (const pelatihan of pelatihanData) {
     const createdPelatihan = await prisma.pelatihan.create({
-    data: {
+      data: {
+        id: randomUUID(),
         nama: pelatihan.nama,
         tanggal: pelatihan.tanggal,
-        lokasi: pelatihan.lokasi
+        lokasi: pelatihan.lokasi,
+        updatedAt: new Date()
       }
     })
 
     for (const peserta of pelatihan.peserta) {
-  await prisma.pelatihanDetail.create({
-    data: {
+      await prisma.pelatihandetail.create({
+        data: {
+          id: randomUUID(),
           pelatihanId: createdPelatihan.id,
           karyawanId: peserta.karyawanId,
           skor: peserta.skor,
-          catatan: peserta.catatan
+          catatan: peserta.catatan,
+          updatedAt: new Date()
         }
       })
     }
@@ -478,36 +355,28 @@ async function main() {
     {
       nama: 'Employee of the Year 2024',
       tahun: new Date('2024-12-31'),
-      karyawan: [createdKaryawan[3].id, createdKaryawan[7].id] // Jane Smith & Lisa Wong
+      karyawan: [createdKaryawan[2].id] // Jane Smith
     },
     {
       nama: 'Best Team Player 2024',
       tahun: new Date('2024-12-31'),
-      karyawan: [createdKaryawan[2].id, createdKaryawan[5].id] // John Doe & Sari Dewi
-    },
-    {
-      nama: 'Innovation Award 2024',
-      tahun: new Date('2024-12-31'),
-      karyawan: [createdKaryawan[7].id] // Lisa Wong
+      karyawan: [createdKaryawan[1].id] // John Doe
     },
     {
       nama: 'Leadership Excellence 2024',
       tahun: new Date('2024-12-31'),
-      karyawan: [createdKaryawan[0].id, createdKaryawan[3].id] // Sarah Johnson & Jane Smith
-    },
-    {
-      nama: 'Rising Star 2024',
-      tahun: new Date('2024-12-31'),
-      karyawan: [createdKaryawan[4].id] // Budi Santoso
+      karyawan: [createdKaryawan[0].id, createdKaryawan[2].id] // Sarah Johnson & Jane Smith
     }
   ]
 
   for (const penghargaan of penghargaanData) {
-    const createdPenghargaan = await prisma.penghargaan.create({
+    await prisma.penghargaan.create({
       data: {
+        id: randomUUID(),
         nama: penghargaan.nama,
         tahun: penghargaan.tahun,
-        Karyawan: {
+        updatedAt: new Date(),
+        karyawan: {
           connect: penghargaan.karyawan.map(id => ({ id }))
         }
       }
@@ -518,13 +387,10 @@ async function main() {
   console.log('🎉 Seeding completed successfully!')
   console.log('\n📋 Test Accounts:')
   console.log('HR Manager: hr.manager@company.com / hr123')
-  console.log('HR Specialist: hr.specialist@company.com / hr123')
   console.log('John Doe: john.doe@company.com / karyawan123')
   console.log('Jane Smith: jane.smith@company.com / karyawan123')
   console.log('Budi Santoso: budi.santoso@company.com / karyawan123')
-  console.log('Sari Dewi: sari.dewi@company.com / karyawan123')
   console.log('Ahmad Rizki: ahmad.rizki@company.com / karyawan123')
-  console.log('Lisa Wong: lisa.wong@company.com / karyawan123')
 }
 
 main()

@@ -3,160 +3,160 @@ generator client {
 }
 
 datasource db {
-  provider  = "mysql"
-  url       = env("DATABASE_URL")
-  // directUrl = env("DIRECT_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
-enum Role {
-  KARYAWAN
-  HR
-}
-
-enum Gender {
-  Pria
-  Wanita
-}
-
-model User {
-  username        String   @id
-  email     String   @unique
-  role      Role     @default(KARYAWAN)
-  password  String
-  karyawan  Karyawan?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Departemen {
-  id        String     @id @default(cuid())
-  nama      String     @unique
-  Karyawan  Karyawan[] @relation("DepartemenOnKaryawan")
+model departemen {
+  id        String     @id
+  nama      String     @unique(map: "Departemen_nama_key")
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  karyawan  karyawan[] @relation("departemenonkaryawan")
 }
 
-model Jabatan {
-  id        String     @id @default(cuid())
-  nama      String     @unique
-  Karyawan  Karyawan[] @relation("JabatanOnKaryawan")
+model featuresnapshot {
+  id             String       @id
+  karyawanId     String
+  features       Json
+  modelVersionId String
+  createdAt      DateTime     @default(now())
+  modelversion   modelversion @relation(fields: [modelVersionId], references: [id], map: "FeatureSnapshot_modelVersionId_fkey")
+
+  @@index([modelVersionId], map: "FeatureSnapshot_modelVersionId_fkey")
+}
+
+model jabatan {
+  id        String     @id
+  nama      String     @unique(map: "Jabatan_nama_key")
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  karyawan  karyawan[] @relation("jabatanonkaryawan")
 }
 
-model KPI {
-  id         String   @id @default(cuid())
+model karyawan {
+  id              String            @id
+  nama            String
+  gender          karyawan_gender
+  alamat          String?
+  no_telp         String?
+  tanggal_lahir   DateTime?
+  pendidikan      String
+  tanggal_masuk   DateTime
+  jalur_rekrut    String
+  userId          String            @unique(map: "Karyawan_userId_key")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  user            user              @relation(fields: [userId], references: [username], map: "Karyawan_userId_fkey")
+  kpi             kpi[]
+  pelatihandetail pelatihandetail[]
+  rating          rating[]
+  departemen      departemen[]      @relation("departemenonkaryawan")
+  jabatan         jabatan[]         @relation("jabatanonkaryawan")
+  penghargaan     penghargaan[]     @relation("penghargaanonkaryawan")
+}
+
+model kpi {
+  id         String   @id
   year       Int
   score      Float
   notes      String?
   karyawanId String
-  karyawan   Karyawan @relation(fields: [karyawanId], references: [id])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  karyawan   karyawan @relation(fields: [karyawanId], references: [id], map: "KPI_karyawanId_fkey")
 
-  @@unique([karyawanId, year])
+  @@unique([karyawanId, year], map: "KPI_karyawanId_year_key")
 }
 
-model Rating {
-  id         String   @id @default(cuid())
-  year       Int
-  score      Float
-  notes      String?
-  karyawanId String
-  karyawan   Karyawan @relation(fields: [karyawanId], references: [id])
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@unique([karyawanId, year])
+model modelversion {
+  id                      String                    @id
+  name                    String
+  version                 Int
+  type                    String
+  storagePath             String
+  metrics                 Json?
+  createdAt               DateTime                  @default(now())
+  featuresnapshot         featuresnapshot[]
+  promotionrecommendation promotionrecommendation[]
 }
 
-model Penghargaan {
-  id        String       @id @default(cuid())
-  nama      String
-  tahun     DateTime
-  Karyawan  Karyawan[]   @relation("PenghargaanOnKaryawan")
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+model pelatihan {
+  id              String            @id
+  nama            String
+  tanggal         DateTime
+  lokasi          String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  pelatihandetail pelatihandetail[]
 }
 
-model Pelatihan {
-  id        String            @id @default(cuid())
-  nama      String
-  tanggal   DateTime
-  lokasi    String
-  peserta   PelatihanDetail[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model PelatihanDetail {
-  id          String    @id @default(cuid())
+model pelatihandetail {
+  id          String    @id
   pelatihanId String
   karyawanId  String
   skor        Float?
   catatan     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  karyawan    karyawan  @relation(fields: [karyawanId], references: [id], map: "PelatihanDetail_karyawanId_fkey")
+  pelatihan   pelatihan @relation(fields: [pelatihanId], references: [id], map: "PelatihanDetail_pelatihanId_fkey")
 
-  pelatihan   Pelatihan @relation(fields: [pelatihanId], references: [id])
-  karyawan    Karyawan  @relation(fields: [karyawanId], references: [id])
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([pelatihanId, karyawanId])
+  @@unique([pelatihanId, karyawanId], map: "PelatihanDetail_pelatihanId_karyawanId_key")
+  @@index([karyawanId], map: "PelatihanDetail_karyawanId_fkey")
 }
 
-model Karyawan {
-  id               String            @id @default(cuid())
-  nama             String
-  gender           Gender
-  alamat           String?
-  no_telp          String?
-  tanggal_lahir    DateTime?
-  pendidikan       String
-  tanggal_masuk    DateTime
-  jalur_rekrut     String
-  penghargaan      Penghargaan[]    @relation("PenghargaanOnKaryawan")
-  Departemen       Departemen[]     @relation("DepartemenOnKaryawan")
-  Jabatan          Jabatan[]        @relation("JabatanOnKaryawan")
-  KPI              KPI[]            // 1 karyawan -> banyak KPI
-  Rating           Rating[]         // 1 karyawan -> banyak Rating
-  pelatihanDetail  PelatihanDetail[]
-  userId           String           @unique
-  user             User             @relation(fields: [userId], references: [username])
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+model penghargaan {
+  id        String     @id
+  nama      String
+  tahun     DateTime
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  karyawan  karyawan[] @relation("penghargaanonkaryawan")
 }
 
-// --- XGBoost Promotion AI Models ---
-
-model ModelVersion {
-  id               String                   @id @default(cuid())
-  name             String
-  version          Int
-  type             String
-  storagePath      String
-  metrics          Json?
-  createdAt        DateTime                 @default(now())
-  FeatureSnapshots FeatureSnapshot[]
-  Recommendations  PromotionRecommendation[]
-}
-
-model FeatureSnapshot {
-  id             String       @id @default(cuid())
-  karyawanId     String
-  features       Json
-  modelVersionId String
-  modelVersion   ModelVersion @relation(fields: [modelVersionId], references: [id])
-  createdAt      DateTime     @default(now())
-}
-
-model PromotionRecommendation {
-  id             String       @id @default(cuid())
+model promotionrecommendation {
+  id             String       @id
   karyawanId     String
   modelVersionId String
-  modelVersion   ModelVersion @relation(fields: [modelVersionId], references: [id])
   score          Float
   recommend      Boolean
   reasons        Json?
   createdAt      DateTime     @default(now())
+  modelversion   modelversion @relation(fields: [modelVersionId], references: [id], map: "PromotionRecommendation_modelVersionId_fkey")
+
+  @@index([modelVersionId], map: "PromotionRecommendation_modelVersionId_fkey")
+}
+
+model rating {
+  id         String   @id
+  year       Int
+  score      Float
+  notes      String?
+  karyawanId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  karyawan   karyawan @relation(fields: [karyawanId], references: [id], map: "Rating_karyawanId_fkey")
+
+  @@unique([karyawanId, year], map: "Rating_karyawanId_year_key")
+}
+
+model user {
+  username  String    @id
+  email     String    @unique(map: "User_email_key")
+  role      user_role @default(KARYAWAN)
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  karyawan  karyawan?
+}
+
+enum karyawan_gender {
+  Pria
+  Wanita
+}
+
+enum user_role {
+  KARYAWAN
+  HR
 }
