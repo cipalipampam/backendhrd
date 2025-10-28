@@ -2,13 +2,15 @@ import prisma from "../../prismaClient.js";
 import { Router } from "express";
 import { allowRoles } from "../../middleware/role-authorization.js";
 import { ROLES } from "../../constants/roles.js";
+import { randomUUID } from "crypto"; 
 
 const router = Router()
 
 router.get('/', allowRoles(ROLES.HR), async (req, res) => {
     try {
         const jabatan = await prisma.jabatan.findMany({
-            select: {
+           select: {
+                id: true,
                 nama: true
             }
         });
@@ -34,6 +36,7 @@ router.post('/', allowRoles(ROLES.HR), async (req, res) => {
     try {
         const jabatan = await prisma.jabatan.create({
             data: {
+                id: randomUUID(), 
                 nama
             },
         });
