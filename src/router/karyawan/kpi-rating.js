@@ -8,7 +8,7 @@ const router = Router();
 // Get all KPI (HR only)
 router.get("/kpi", allowRoles(ROLES.HR), async (req, res) => {
   try {
-    const kpi = await prisma.kPI.findMany({
+    const kpi = await prisma.kpi.findMany({
       include: {
         karyawan: {
           select: {

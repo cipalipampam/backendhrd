@@ -79,11 +79,11 @@ router.get("/me", async (req, res) => {
     const karyawan = await prisma.karyawan.findUnique({
       where: { userId: user.username },
       include: {
-        Departemen: true,
-        Jabatan: true,
-        KPI: true,
-        Rating: true,
-        pelatihanDetail: {
+        departemen: true,
+        jabatan: true,
+        kpi: true,
+        rating: true,
+        pelatihandetail: {
           include: {
             pelatihan: true
           }
@@ -158,8 +158,8 @@ router.put("/me", async (req, res) => {
         no_telp,
       },
       include: {
-        Departemen: true,
-        Jabatan: true,
+        departemen: true,
+        jabatan: true,
         user: {
           select: {
             username: true,
@@ -191,11 +191,11 @@ router.get("/:id", allowRoles(ROLES.HR), async (req, res) => {
     const karyawan = await prisma.karyawan.findUnique({
       where: { id },
       include: { 
-        Departemen: true, 
-        Jabatan: true, 
-        KPI: true,
-        Rating: true,
-        pelatihanDetail: {
+        departemen: true, 
+        jabatan: true, 
+        kpi: true,
+        rating: true,
+        pelatihandetail: {
           include: {
             pelatihan: true
           }

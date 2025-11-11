@@ -57,16 +57,46 @@ model karyawan {
 }
 
 model kpi {
-  id         String   @id
+  id         String       @id
   year       Int
   score      Float
-  notes      String?
   karyawanId String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  karyawan   karyawan @relation(fields: [karyawanId], references: [id], map: "KPI_karyawanId_fkey")
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  karyawan   karyawan     @relation(fields: [karyawanId], references: [id], map: "KPI_karyawanId_fkey")
+
+  kpiDetails kpiDetail[]  @relation("kpi_kpiDetail")
 
   @@unique([karyawanId, year], map: "KPI_karyawanId_year_key")
+}
+
+model kpiIndicator {
+  id          String      @id @default(cuid())
+  nama        String
+  deskripsi   String?
+  bobot       Float       // misal 0.3 = 30%
+  departemenId String?    // opsional
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  kpiDetails  kpiDetail[] @relation("indicator_kpiDetail")
+}
+
+model kpiDetail {
+  id           String   @id @default(cuid())
+  kpiId        String
+  indikatorId  String
+  target       Float
+  realisasi    Float?
+  score        Float?   // (realisasi/target) * bobot * 100
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  kpi          kpi           @relation("kpi_kpiDetail", fields: [kpiId], references: [id], map: "KpiDetail_kpiId_fkey")
+  indikator    kpiIndicator  @relation("indicator_kpiDetail", fields: [indikatorId], references: [id], map: "KpiDetail_indikatorId_fkey")
+
+  @@index([kpiId], map: "KpiDetail_kpiId_idx")
+  @@index([indikatorId], map: "KpiDetail_indikatorId_idx")
 }
 
 model modelversion {

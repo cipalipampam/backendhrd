@@ -7,28 +7,26 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🌱 Starting database seeding...')
 
-  // -------------------- Departemen --------------------
+  // -------------------- Departemen (hanya 3) --------------------
   const departemenNames = [
-    'Sales & Marketing',
-    'Operations',
     'Technology',
-    'Finance',
+    'Sales & Marketing',
     'HR'
   ]
   
-  await Promise.all(
-    departemenNames.map(nama =>
-      prisma.departemen.upsert({
-        where: { nama },
-        update: {},
-        create: { 
-          id: randomUUID(),
-          nama,
-          updatedAt: new Date()
-        }
-      })
-    )
-  )
+  const createdDepartemen = []
+  for (const nama of departemenNames) {
+    const dept = await prisma.departemen.upsert({
+      where: { nama },
+      update: {},
+      create: { 
+        id: randomUUID(),
+        nama,
+        updatedAt: new Date()
+      }
+    })
+    createdDepartemen.push(dept)
+  }
   console.log('✅ Departemen created')
 
   // -------------------- Jabatan --------------------
@@ -36,9 +34,7 @@ async function main() {
     'Manager',
     'Staff',
     'Supervisor',
-    'Analyst',
-    'Developer',
-    'Specialist'
+    'Developer'
   ]
   
   await Promise.all(
@@ -55,6 +51,66 @@ async function main() {
     )
   )
   console.log('✅ Jabatan created')
+
+  // -------------------- KPI Indicators (2 per departemen) --------------------
+  const kpiIndicators = [
+    // Technology Department Indicators (2)
+    {
+      nama: 'Project Delivery Rate',
+      deskripsi: 'Persentase proyek yang diselesaikan tepat waktu',
+      bobot: 0.60,
+      departemenId: createdDepartemen.find(d => d.nama === 'Technology')?.id
+    },
+    {
+      nama: 'Code Quality Score',
+      deskripsi: 'Skor kualitas kode berdasarkan review dan testing',
+      bobot: 0.40,
+      departemenId: createdDepartemen.find(d => d.nama === 'Technology')?.id
+    },
+
+    // Sales & Marketing Department Indicators (2)
+    {
+      nama: 'Sales Revenue Achievement',
+      deskripsi: 'Persentase pencapaian target revenue',
+      bobot: 0.70,
+      departemenId: createdDepartemen.find(d => d.nama === 'Sales & Marketing')?.id
+    },
+    {
+      nama: 'Customer Retention',
+      deskripsi: 'Persentase customer yang tetap aktif',
+      bobot: 0.30,
+      departemenId: createdDepartemen.find(d => d.nama === 'Sales & Marketing')?.id
+    },
+
+    // HR Department Indicators (2)
+    {
+      nama: 'Employee Retention Rate',
+      deskripsi: 'Persentase karyawan yang bertahan dalam periode tertentu',
+      bobot: 0.50,
+      departemenId: createdDepartemen.find(d => d.nama === 'HR')?.id
+    },
+    {
+      nama: 'Training Completion Rate',
+      deskripsi: 'Persentase penyelesaian program pelatihan',
+      bobot: 0.50,
+      departemenId: createdDepartemen.find(d => d.nama === 'HR')?.id
+    }
+  ]
+
+  const createdIndicators = []
+  for (const indicator of kpiIndicators) {
+    const created = await prisma.kpiIndicator.create({
+      data: indicator
+    })
+    createdIndicators.push(created)
+  }
+  console.log('✅ KPI Indicators created')
+
+  // Helper function to get indicators by department
+  const getIndicatorsByDepartment = (deptName) => {
+    const dept = createdDepartemen.find(d => d.nama === deptName)
+    return createdIndicators.filter(ind => ind.departemenId === dept?.id)
+  }
 
   // -------------------- User & Karyawan --------------------
   const users = [
@@ -113,42 +169,6 @@ async function main() {
         departemen: 'Sales & Marketing',
         jabatan: 'Manager'
       }
-    },
-    {
-      username: 'budi_santoso',
-      email: 'budi.santoso@company.com',
-      password: 'karyawan123',
-      role: 'KARYAWAN',
-      karyawan: {
-        nama: 'Budi Santoso',
-        gender: 'Pria',
-        alamat: 'Jl. Senayan No. 654, Jakarta',
-        no_telp: '081234567894',
-        tanggal_lahir: new Date('1995-07-18'),
-        pendidikan: 'Sarjana Akuntansi',
-        tanggal_masuk: new Date('2023-01-10'),
-        jalur_rekrut: 'Campus Recruitment',
-        departemen: 'Finance',
-        jabatan: 'Analyst'
-      }
-    },
-    {
-      username: 'ahmad_rizki',
-      email: 'ahmad.rizki@company.com',
-      password: 'karyawan123',
-      role: 'KARYAWAN',
-      karyawan: {
-        nama: 'Ahmad Rizki',
-        gender: 'Pria',
-        alamat: 'Jl. Cikini No. 147, Jakarta',
-        no_telp: '081234567896',
-        tanggal_lahir: new Date('1991-04-12'),
-        pendidikan: 'Sarjana Teknik Industri',
-        tanggal_masuk: new Date('2020-11-05'),
-        jalur_rekrut: 'Job Portal',
-        departemen: 'Operations',
-        jabatan: 'Supervisor'
-      }
     }
   ]
 
@@ -197,53 +217,399 @@ async function main() {
 
   console.log('✅ Users and Karyawan created')
 
-  // -------------------- KPI Data --------------------
-  const kpiData = [
-    // Sarah Johnson (HR Manager)
-    { karyawanId: createdKaryawan[0].id, year: 2022, score: 85.5, notes: 'Target tercapai dengan baik' },
-    { karyawanId: createdKaryawan[0].id, year: 2023, score: 88.0, notes: 'Peningkatan performa yang signifikan' },
-    { karyawanId: createdKaryawan[0].id, year: 2024, score: 92.5, notes: 'Exceeded expectations' },
-    
-    // John Doe (Developer)
-    { karyawanId: createdKaryawan[1].id, year: 2022, score: 78.0, notes: 'Learning phase, good progress' },
-    { karyawanId: createdKaryawan[1].id, year: 2023, score: 85.0, notes: 'Significant improvement' },
-    { karyawanId: createdKaryawan[1].id, year: 2024, score: 88.5, notes: 'Strong technical skills' },
-    
-    // Jane Smith (Sales Manager)
-    { karyawanId: createdKaryawan[2].id, year: 2021, score: 90.0, notes: 'Excellent sales performance' },
-    { karyawanId: createdKaryawan[2].id, year: 2022, score: 93.5, notes: 'Exceeded sales targets' },
-    { karyawanId: createdKaryawan[2].id, year: 2023, score: 95.0, notes: 'Outstanding leadership' },
-    { karyawanId: createdKaryawan[2].id, year: 2024, score: 96.5, notes: 'Top performer' },
-    
-    // Budi Santoso (Finance Analyst)
-    { karyawanId: createdKaryawan[3].id, year: 2023, score: 87.0, notes: 'Strong analytical skills' },
-    { karyawanId: createdKaryawan[3].id, year: 2024, score: 89.5, notes: 'Excellent attention to detail' },
-    
-    // Ahmad Rizki (Operations Supervisor)
-    { karyawanId: createdKaryawan[4].id, year: 2020, score: 83.0, notes: 'Good operational management' },
-    { karyawanId: createdKaryawan[4].id, year: 2021, score: 86.0, notes: 'Improved efficiency' },
-    { karyawanId: createdKaryawan[4].id, year: 2022, score: 88.5, notes: 'Strong leadership' },
-    { karyawanId: createdKaryawan[4].id, year: 2023, score: 91.0, notes: 'Excellent team management' },
-    { karyawanId: createdKaryawan[4].id, year: 2024, score: 93.5, notes: 'Outstanding performance' }
-  ]
-
-  for (const kpi of kpiData) {
-    await prisma.kpi.upsert({
-      where: {
-        karyawanId_year: {
-          karyawanId: kpi.karyawanId,
-          year: kpi.year
-        }
-      },
-      update: {},
-      create: {
-        id: randomUUID(),
-        ...kpi,
-        updatedAt: new Date()
+  // -------------------- KPI Data with Details --------------------
+  
+  // Sarah Johnson (HR Manager) - 2022
+  const sarahHRIndicators = getIndicatorsByDepartment('HR')
+  const sarahKPI2022 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[0].id,
+        year: 2022
       }
-    })
-  }
-  console.log('✅ KPI data created')
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[0].id,
+      year: 2022,
+      score: 85.5,
+      updatedAt: new Date()
+    }
+  })
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: sarahKPI2022.id,
+        indikatorId: sarahHRIndicators[0].id, // Employee Retention Rate
+        target: 90,
+        realisasi: 88,
+        score: (88/90) * 0.50 * 100
+      },
+      {
+        id: randomUUID(),
+        kpiId: sarahKPI2022.id,
+        indikatorId: sarahHRIndicators[1].id, // Training Completion Rate
+        target: 95,
+        realisasi: 92,
+        score: (92/95) * 0.50 * 100
+      }
+    ]
+  })
+
+  // Sarah Johnson - 2023
+  const sarahKPI2023 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[0].id,
+        year: 2023
+      }
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[0].id,
+      year: 2023,
+      score: 88.0,
+      updatedAt: new Date()
+    }
+  })
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: sarahKPI2023.id,
+        indikatorId: sarahHRIndicators[0].id,
+        target: 92,
+        realisasi: 91,
+        score: (91/92) * 0.50 * 100
+      },
+      {
+        id: randomUUID(),
+        kpiId: sarahKPI2023.id,
+        indikatorId: sarahHRIndicators[1].id,
+        target: 95,
+        realisasi: 94,
+        score: (94/95) * 0.50 * 100
+      }
+    ]
+  })
+
+  // Sarah Johnson - 2024
+  const sarahKPI2024 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[0].id,
+        year: 2024
+      }
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[0].id,
+      year: 2024,
+      score: 92.5,
+      updatedAt: new Date()
+    }
+  })
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: sarahKPI2024.id,
+        indikatorId: sarahHRIndicators[0].id,
+        target: 93,
+        realisasi: 95,
+        score: (95/93) * 0.50 * 100
+      },
+      {
+        id: randomUUID(),
+        kpiId: sarahKPI2024.id,
+        indikatorId: sarahHRIndicators[1].id,
+        target: 96,
+        realisasi: 97,
+        score: (97/96) * 0.50 * 100
+      }
+    ]
+  })
+
+  // John Doe (Technology Developer) - 2022, 2023, 2024
+  const johnTechIndicators = getIndicatorsByDepartment('Technology')
+  
+  const johnKPI2022 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[1].id,
+        year: 2022
+      }
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[1].id,
+      year: 2022,
+      score: 78.0,
+      updatedAt: new Date()
+    }
+  })
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: johnKPI2022.id,
+        indikatorId: johnTechIndicators[0].id, // Project Delivery Rate
+        target: 90,
+        realisasi: 82,
+        score: (82/90) * 0.60 * 100
+      },
+      {
+        id: randomUUID(),
+        kpiId: johnKPI2022.id,
+        indikatorId: johnTechIndicators[1].id, // Code Quality Score
+        target: 85,
+        realisasi: 78,
+        score: (78/85) * 0.40 * 100
+      }
+    ]
+  })
+
+  const johnKPI2023 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[1].id,
+        year: 2023
+      }
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[1].id,
+      year: 2023,
+      score: 85.0,
+      updatedAt: new Date()
+    }
+  })
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: johnKPI2023.id,
+        indikatorId: johnTechIndicators[0].id,
+        target: 92,
+        realisasi: 90,
+        score: (90/92) * 0.60 * 100
+      },
+      {
+        id: randomUUID(),
+        kpiId: johnKPI2023.id,
+        indikatorId: johnTechIndicators[1].id,
+        target: 88,
+        realisasi: 86,
+        score: (86/88) * 0.40 * 100
+      }
+    ]
+  })
+
+  const johnKPI2024 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[1].id,
+        year: 2024
+      }
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[1].id,
+      year: 2024,
+      score: 88.5,
+      updatedAt: new Date()
+    }
+  })
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: johnKPI2024.id,
+        indikatorId: johnTechIndicators[0].id,
+        target: 93,
+        realisasi: 92,
+        score: (92/93) * 0.60 * 100
+      },
+      {
+        id: randomUUID(),
+        kpiId: johnKPI2024.id,
+        indikatorId: johnTechIndicators[1].id,
+        target: 90,
+        realisasi: 91,
+        score: (91/90) * 0.40 * 100
+      }
+    ]
+  })
+
+  // Jane Smith (Sales & Marketing Manager) - 2021-2024
+  const janeSalesIndicators = getIndicatorsByDepartment('Sales & Marketing')
+  
+  const janeKPI2021 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[2].id,
+        year: 2021
+      }
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[2].id,
+      year: 2021,
+      score: 90.0,
+      updatedAt: new Date()
+    }
+  })
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2021.id,
+        indikatorId: janeSalesIndicators[0].id, // Sales Revenue Achievement
+        target: 100,
+        realisasi: 105,
+        score: (105/100) * 0.70 * 100
+      },
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2021.id,
+        indikatorId: janeSalesIndicators[1].id, // Customer Retention
+        target: 85,
+        realisasi: 82,
+        score: (82/85) * 0.30 * 100
+      }
+    ]
+  })
+
+  const janeKPI2022 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[2].id,
+        year: 2022
+      }
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[2].id,
+      year: 2022,
+      score: 93.5,
+      updatedAt: new Date()
+    }
+  })
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2022.id,
+        indikatorId: janeSalesIndicators[0].id,
+        target: 110,
+        realisasi: 118,
+        score: (118/110) * 0.70 * 100
+      },
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2022.id,
+        indikatorId: janeSalesIndicators[1].id,
+        target: 87,
+        realisasi: 88,
+        score: (88/87) * 0.30 * 100
+      }
+    ]
+  })
+
+  const janeKPI2023 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[2].id,
+        year: 2023
+      }
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[2].id,
+      year: 2023,
+      score: 95.0,
+      updatedAt: new Date()
+    }
+  })
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2023.id,
+        indikatorId: janeSalesIndicators[0].id,
+        target: 120,
+        realisasi: 128,
+        score: (128/120) * 0.70 * 100
+      },
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2023.id,
+        indikatorId: janeSalesIndicators[1].id,
+        target: 90,
+        realisasi: 91,
+        score: (91/90) * 0.30 * 100
+      }
+    ]
+  })
+
+  const janeKPI2024 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[2].id,
+        year: 2024
+      }
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[2].id,
+      year: 2024,
+      score: 96.5,
+      updatedAt: new Date()
+    }
+  })
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2024.id,
+        indikatorId: janeSalesIndicators[0].id,
+        target: 125,
+        realisasi: 135,
+        score: (135/125) * 0.70 * 100
+      },
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2024.id,
+        indikatorId: janeSalesIndicators[1].id,
+        target: 92,
+        realisasi: 94,
+        score: (94/92) * 0.30 * 100
+      }
+    ]
+  })
+
+  console.log('✅ KPI data with details created')
 
   // -------------------- Rating Data --------------------
   const ratingData = [
@@ -261,18 +627,7 @@ async function main() {
     { karyawanId: createdKaryawan[2].id, year: 2021, score: 4.5, notes: 'Excellent sales results' },
     { karyawanId: createdKaryawan[2].id, year: 2022, score: 4.6, notes: 'Outstanding sales performance' },
     { karyawanId: createdKaryawan[2].id, year: 2023, score: 4.7, notes: 'Top sales manager' },
-    { karyawanId: createdKaryawan[2].id, year: 2024, score: 4.8, notes: 'Exceptional leadership' },
-    
-    // Budi Santoso
-    { karyawanId: createdKaryawan[3].id, year: 2023, score: 4.2, notes: 'Good analytical work' },
-    { karyawanId: createdKaryawan[3].id, year: 2024, score: 4.4, notes: 'Excellent financial analysis' },
-    
-    // Ahmad Rizki
-    { karyawanId: createdKaryawan[4].id, year: 2020, score: 4.0, notes: 'Good operational skills' },
-    { karyawanId: createdKaryawan[4].id, year: 2021, score: 4.2, notes: 'Improved efficiency' },
-    { karyawanId: createdKaryawan[4].id, year: 2022, score: 4.3, notes: 'Strong supervision' },
-    { karyawanId: createdKaryawan[4].id, year: 2023, score: 4.5, notes: 'Excellent team leadership' },
-    { karyawanId: createdKaryawan[4].id, year: 2024, score: 4.6, notes: 'Outstanding supervisor' }
+    { karyawanId: createdKaryawan[2].id, year: 2024, score: 4.8, notes: 'Exceptional leadership' }
   ]
 
   for (const rating of ratingData) {
@@ -301,8 +656,7 @@ async function main() {
       lokasi: 'Jakarta Convention Center',
       peserta: [
         { karyawanId: createdKaryawan[0].id, skor: 95, catatan: 'Excellent leadership potential' },
-        { karyawanId: createdKaryawan[2].id, skor: 92, catatan: 'Strong leadership skills' },
-        { karyawanId: createdKaryawan[4].id, skor: 88, catatan: 'Good management potential' }
+        { karyawanId: createdKaryawan[2].id, skor: 92, catatan: 'Strong leadership skills' }
       ]
     },
     {
@@ -314,12 +668,12 @@ async function main() {
       ]
     },
     {
-      nama: 'Financial Analysis & Reporting',
+      nama: 'Sales Strategy Workshop',
       tanggal: new Date('2024-05-12'),
-      lokasi: 'Jakarta Financial Center',
+      lokasi: 'Jakarta Business Center',
       peserta: [
-        { karyawanId: createdKaryawan[3].id, skor: 91, catatan: 'Strong financial acumen' },
-        { karyawanId: createdKaryawan[0].id, skor: 86, catatan: 'Good understanding of finance' }
+        { karyawanId: createdKaryawan[2].id, skor: 96, catatan: 'Outstanding sales knowledge' },
+        { karyawanId: createdKaryawan[0].id, skor: 86, catatan: 'Good understanding of sales' }
       ]
     }
   ]
@@ -387,10 +741,8 @@ async function main() {
   console.log('🎉 Seeding completed successfully!')
   console.log('\n📋 Test Accounts:')
   console.log('HR Manager: hr.manager@company.com / hr123')
-  console.log('John Doe: john.doe@company.com / karyawan123')
-  console.log('Jane Smith: jane.smith@company.com / karyawan123')
-  console.log('Budi Santoso: budi.santoso@company.com / karyawan123')
-  console.log('Ahmad Rizki: ahmad.rizki@company.com / karyawan123')
+  console.log('John Doe (Tech): john.doe@company.com / karyawan123')
+  console.log('Jane Smith (Sales): jane.smith@company.com / karyawan123')
 }
 
 main()
