@@ -16,6 +16,8 @@ import pelatihan from './router/pelatihan/pelatihan.js';
 import xgboostModel from './router/promotion-ai/xgboost-model.js';
 import promotion from './router/promotion-ai/promotion.js';
 import { runPrismaMigrateAndSeed } from './bootstrap.js';
+import karyawanFeatures from './router/karyawan/karyawan-features.js';
+import predict from './router/promotion-ai/predict.js';
 
 config();
 runPrismaMigrateAndSeed();
@@ -43,6 +45,9 @@ app.use('/api/pelatihan', accessValidation, pelatihan);
 // XGBoost model support (HR only)
 app.use('/api/xgboost', accessValidation, xgboostModel);
 app.use('/api/promotion', accessValidation, promotion);
+
+app.use('/api/karyawan-features', accessValidation, karyawanFeatures);
+app.use('/api/predict', accessValidation, predict);
 
 const PORT = process.env.PORT || 3000;
 
