@@ -17,7 +17,7 @@ def load_model():
         with open(os.path.join(script_dir, 'encoders.pkl'), 'rb') as f:
             encoders = pickle.load(f)
         
-        with open(os.path.join(script_dir, 'model_random_forest.pkl'), 'rb') as f:
+        with open(os.path.join(script_dir, 'DecisionTree_model.pkl'), 'rb') as f:
             model = pickle.load(f)
         
         return model, scaler, encoders
