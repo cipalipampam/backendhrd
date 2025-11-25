@@ -1,6 +1,7 @@
 import prisma from "../../prismaClient.js";
 import { Router } from "express";
 import { allowRoles } from "../../middleware/role-authorization.js";
+import { randomUUID } from 'crypto';
 import { ROLES } from "../../constants/roles.js";
 
 const router = Router()
@@ -10,7 +11,7 @@ router.get('/', allowRoles(ROLES.HR), async (req, res) => {
     try {
         const pelatihan = await prisma.pelatihan.findMany({
             include: {
-                peserta: {
+                pelatihandetail: {
                     include: {
                         karyawan: {
                             select: {
@@ -54,7 +55,7 @@ router.get('/my', async (req, res) => {
         const karyawan = await prisma.karyawan.findUnique({
             where: { userId: user.username },
             include: {
-                pelatihanDetail: {
+                pelatihandetail: {
                     include: {
                         pelatihan: true
                     }
@@ -69,7 +70,7 @@ router.get('/my', async (req, res) => {
             });
         }
 
-        const pelatihan = karyawan.pelatihanDetail.map(detail => ({
+        const pelatihan = karyawan.pelatihandetail.map(detail => ({
             id: detail.id,
             skor: detail.skor,
             catatan: detail.catatan,
@@ -103,6 +104,7 @@ router.post('/', allowRoles(ROLES.HR), async (req, res) => {
     try {
         const pelatihan = await prisma.pelatihan.create({
             data: {
+                id: randomUUID(),
                 nama,
                 tanggal: new Date(tanggal),
                 lokasi
@@ -151,6 +153,108 @@ router.delete('/:id', allowRoles(ROLES.HR), async (req, res) => {
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+// Public for authenticated users: list available trainings
+router.get('/available', async (req, res) => {
+    try {
+        const pelatihan = await prisma.pelatihan.findMany({
+            select: {
+                id: true,
+                nama: true,
+                tanggal: true,
+                lokasi: true
+            },
+            orderBy: { tanggal: 'desc' }
+        });
+        res.json({ status: 200, message: 'Available pelatihan', data: pelatihan });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Join a pelatihan as current karyawan
+router.post('/:id/join', async (req, res) => {
+    try {
+        const pelatihanId = req.params.id;
+        const user = req.user;
+        if (!user) return res.status(401).json({ message: 'Unauthorized' });
+
+        const karyawan = await prisma.karyawan.findUnique({ where: { userId: user.username } });
+        if (!karyawan) return res.status(404).json({ message: 'Karyawan not found' });
+
+        // Check pelatihan exists
+        const existingPel = await prisma.pelatihan.findUnique({ where: { id: pelatihanId } });
+        if (!existingPel) return res.status(404).json({ message: 'Pelatihan not found' });
+
+        // Check already joined
+        const existing = await prisma.pelatihandetail.findUnique({
+            where: { pelatihanId_karyawanId: { pelatihanId, karyawanId: karyawan.id } }
+        });
+        if (existing) return res.status(409).json({ message: 'Already joined' });
+
+        const created = await prisma.pelatihandetail.create({
+            data: {
+                id: randomUUID(),
+                pelatihanId,
+                karyawanId: karyawan.id,
+                updatedAt: new Date()
+            }
+        });
+
+        res.status(201).json({ status: 201, message: 'Joined pelatihan', data: created });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Confirm attendance for a joined pelatihan
+router.post('/:id/confirm', async (req, res) => {
+    try {
+        const pelatihanId = req.params.id;
+        const user = req.user;
+        if (!user) return res.status(401).json({ message: 'Unauthorized' });
+
+        const karyawan = await prisma.karyawan.findUnique({ where: { userId: user.username } });
+        if (!karyawan) return res.status(404).json({ message: 'Karyawan not found' });
+
+        const updated = await prisma.pelatihandetail.update({
+            where: { pelatihanId_karyawanId: { pelatihanId, karyawanId: karyawan.id } },
+            data: { catatan: 'CONFIRMED', updatedAt: new Date() }
+        });
+
+        res.json({ status: 200, message: 'Confirmed', data: updated });
+    } catch (error) {
+        console.log(error);
+        if (error.code === 'P2025') return res.status(404).json({ message: 'Join record not found' });
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Decline invitation / decline joining
+router.post('/:id/decline', async (req, res) => {
+    try {
+        const pelatihanId = req.params.id;
+        const { alasan } = req.body;
+        const user = req.user;
+        if (!user) return res.status(401).json({ message: 'Unauthorized' });
+
+        const karyawan = await prisma.karyawan.findUnique({ where: { userId: user.username } });
+        if (!karyawan) return res.status(404).json({ message: 'Karyawan not found' });
+
+        const updated = await prisma.pelatihandetail.update({
+            where: { pelatihanId_karyawanId: { pelatihanId, karyawanId: karyawan.id } },
+            data: { catatan: alasan || 'DECLINED', updatedAt: new Date() }
+        });
+
+        res.json({ status: 200, message: 'Declined', data: updated });
+    } catch (error) {
+        console.log(error);
+        if (error.code === 'P2025') return res.status(404).json({ message: 'Join record not found' });
+        res.status(500).json({ message: 'Internal server error' });
     }
 });
 
