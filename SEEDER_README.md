@@ -4,10 +4,34 @@
 Seeder ini akan mengisi database dengan data lengkap untuk testing aplikasi Mobile HRD, termasuk:
 
 - **8 User** (2 HR + 6 Karyawan) dengan data lengkap
-- **13 Departemen** dan **14 Jabatan**
+- **8 Departemen** dan **60+ Jabatan** (per departemen, with level & deskripsi)
 - **KPI & Rating** untuk setiap karyawan (multi-year data)
 - **8 Pelatihan** dengan peserta dan skor
 - **5 Penghargaan** untuk karyawan terpilih
+
+## 🔄 Recent Changes (Opsi A - One-to-Many)
+
+### Jabatan Structure
+Setiap **jabatan** sekarang terikat ke **satu departemen** (one-to-many relationship):
+- `departemenId` (required): Foreign key ke departemen
+- `level` (optional): "Junior", "Staff", "Senior", "Lead", "Manager", "Director"
+- `deskripsi` (optional): Job description
+- **Unique constraint**: `(nama, departemenId)` — jabatan dengan nama sama bisa ada di departemen berbeda
+
+**Example**: 
+- "Manager" di departemen HR (id: uuid-1)
+- "Manager" di departemen Technology (id: uuid-2)
+- "Software Engineer" di departemen Technology (id: uuid-2)
+
+### Seed Data Includes
+- **Technology**: 9 roles (Junior Developer, Software Engineer, Tech Lead, DevOps, QA, etc.)
+- **Sales & Marketing**: 7 roles (Sales Rep, Account Executive, Marketing Specialist, etc.)
+- **HR**: 6 roles (HR Assistant, Recruitment Specialist, HR Manager, etc.)
+- **Operations**: 5 roles (Operations Assistant, Process Coordinator, Quality Analyst, etc.)
+- **Analytics**: 5 roles (Data Analyst, Data Scientist, Analytics Manager, etc.)
+- **R&D**: 6 roles (Research Assistant, Product Developer, Research Manager, etc.)
+- **Procurement**: 5 roles (Procurement Assistant, Sourcing Specialist, etc.)
+- **Finance**: 6 roles (Finance Clerk, Accountant, Financial Analyst, Finance Manager, etc.)
 
 ## 🚀 Cara Menjalankan Seeder
 

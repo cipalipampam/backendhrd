@@ -34,23 +34,96 @@ async function main() {
   }
   console.log("✅ Departemen created");
 
-  // -------------------- Jabatan --------------------
-  const jabatanNames = ["Manager", "Staff", "Supervisor", "Developer"];
+  // -------------------- Jabatan (per Departemen) --------------------
+  const jabatanData = [
+    // Technology Department
+    { nama: "Junior Developer", level: "Junior", departemen: "Technology" },
+    { nama: "Software Engineer", level: "Staff", departemen: "Technology" },
+    { nama: "Senior Software Engineer", level: "Senior", departemen: "Technology" },
+    { nama: "Tech Lead", level: "Lead", departemen: "Technology" },
+    { nama: "Engineering Manager", level: "Manager", departemen: "Technology" },
+    { nama: "DevOps Engineer", level: "Staff", departemen: "Technology" },
+    { nama: "QA Engineer", level: "Staff", departemen: "Technology" },
+    { nama: "System Administrator", level: "Staff", departemen: "Technology" },
+    { nama: "Full Stack Developer", level: "Senior", departemen: "Technology" },
 
-  await Promise.all(
-    jabatanNames.map((nama) =>
-      prisma.jabatan.upsert({
-        where: { nama },
-        update: {},
-        create: {
-          id: randomUUID(),
-          nama,
-          updatedAt: new Date(),
+    // Sales & Marketing Department
+    { nama: "Sales Representative", level: "Junior", departemen: "Sales & Marketing" },
+    { nama: "Account Executive", level: "Staff", departemen: "Sales & Marketing" },
+    { nama: "Senior Account Manager", level: "Senior", departemen: "Sales & Marketing" },
+    { nama: "Sales Manager", level: "Manager", departemen: "Sales & Marketing" },
+    { nama: "Marketing Specialist", level: "Staff", departemen: "Sales & Marketing" },
+    { nama: "Digital Marketing Manager", level: "Manager", departemen: "Sales & Marketing" },
+    { nama: "Brand Manager", level: "Senior", departemen: "Sales & Marketing" },
+
+    // HR Department
+    { nama: "HR Assistant", level: "Junior", departemen: "HR" },
+    { nama: "Recruitment Specialist", level: "Staff", departemen: "HR" },
+    { nama: "Training Coordinator", level: "Staff", departemen: "HR" },
+    { nama: "HR Business Partner", level: "Senior", departemen: "HR" },
+    { nama: "HR Manager", level: "Manager", departemen: "HR" },
+    { nama: "Employee Relations Specialist", level: "Staff", departemen: "HR" },
+
+    // Operations Department
+    { nama: "Operations Assistant", level: "Junior", departemen: "Operations" },
+    { nama: "Process Coordinator", level: "Staff", departemen: "Operations" },
+    { nama: "Quality Analyst", level: "Staff", departemen: "Operations" },
+    { nama: "Operations Manager", level: "Manager", departemen: "Operations" },
+    { nama: "Supply Chain Coordinator", level: "Staff", departemen: "Operations" },
+
+    // Analytics Department
+    { nama: "Data Analyst", level: "Staff", departemen: "Analytics" },
+    { nama: "Business Intelligence Specialist", level: "Staff", departemen: "Analytics" },
+    { nama: "Data Scientist", level: "Senior", departemen: "Analytics" },
+    { nama: "Analytics Manager", level: "Manager", departemen: "Analytics" },
+    { nama: "Statistician", level: "Staff", departemen: "Analytics" },
+
+    // R&D Department
+    { nama: "Research Assistant", level: "Junior", departemen: "R&D" },
+    { nama: "Product Developer", level: "Staff", departemen: "R&D" },
+    { nama: "Research Scientist", level: "Senior", departemen: "R&D" },
+    { nama: "Research Manager", level: "Manager", departemen: "R&D" },
+    { nama: "Innovation Specialist", level: "Staff", departemen: "R&D" },
+    { nama: "Lab Technician", level: "Staff", departemen: "R&D" },
+
+    // Procurement Department
+    { nama: "Procurement Assistant", level: "Junior", departemen: "Procurement" },
+    { nama: "Sourcing Specialist", level: "Staff", departemen: "Procurement" },
+    { nama: "Vendor Relations Manager", level: "Senior", departemen: "Procurement" },
+    { nama: "Procurement Manager", level: "Manager", departemen: "Procurement" },
+    { nama: "Contract Specialist", level: "Staff", departemen: "Procurement" },
+
+    // Finance Department
+    { nama: "Finance Clerk", level: "Junior", departemen: "Finance" },
+    { nama: "Accountant", level: "Staff", departemen: "Finance" },
+    { nama: "Financial Analyst", level: "Staff", departemen: "Finance" },
+    { nama: "Budget Specialist", level: "Staff", departemen: "Finance" },
+    { nama: "Finance Manager", level: "Manager", departemen: "Finance" },
+    { nama: "Investment Analyst", level: "Senior", departemen: "Finance" },
+  ];
+
+  for (const jab of jabatanData) {
+    const dept = createdDepartemen.find((d) => d.nama === jab.departemen);
+    if (!dept) continue;
+
+    await prisma.jabatan.upsert({
+      where: {
+        nama_departemenId: {
+          nama: jab.nama,
+          departemenId: dept.id,
         },
-      })
-    )
-  );
-  console.log("✅ Jabatan created");
+      },
+      update: { level: jab.level },
+      create: {
+        id: randomUUID(),
+        nama: jab.nama,
+        level: jab.level,
+        departemenId: dept.id,
+        updatedAt: new Date(),
+      },
+    });
+  }
+  console.log("✅ Jabatan created (per departemen)");
 
   // -------------------- KPI Indicators (2 per departemen) --------------------
   const kpiIndicators = [
@@ -134,7 +207,7 @@ async function main() {
         tanggal_masuk: new Date("2020-01-15"),
         jalur_rekrut: "Wawancara",
         departemen: "HR",
-        jabatan: "Manager",
+        jabatan: "HR Manager", // Updated to match seed data
       },
     },
     // Karyawan Users
@@ -153,7 +226,7 @@ async function main() {
         tanggal_masuk: new Date("2022-06-01"),
         jalur_rekrut: "Undangan",
         departemen: "Technology",
-        jabatan: "Developer",
+        jabatan: "Software Engineer", // Updated to match seed data
       },
     },
     {
@@ -171,7 +244,7 @@ async function main() {
         tanggal_masuk: new Date("2021-09-15"),
         jalur_rekrut: "lainnya",
         departemen: "Sales & Marketing",
-        jabatan: "Manager",
+        jabatan: "Sales Manager", // Updated to match seed data
       },
     },
   ];
@@ -193,6 +266,15 @@ async function main() {
     });
     createdUsers.push(user);
 
+    // Get departemen and jabatan IDs
+    const dept = createdDepartemen.find(d => d.nama === userData.karyawan.departemen);
+    const jabatanRecord = await prisma.jabatan.findFirst({
+      where: {
+        nama: userData.karyawan.jabatan,
+        departemenId: dept?.id
+      }
+    });
+
     const karyawan = await prisma.karyawan.upsert({
       where: { userId: user.username },
       update: {},
@@ -209,11 +291,11 @@ async function main() {
         userId: user.username,
         updatedAt: new Date(),
         departemen: {
-          connect: [{ nama: userData.karyawan.departemen }],
+          connect: [{ id: dept?.id }],
         },
-        jabatan: {
-          connect: [{ nama: userData.karyawan.jabatan }],
-        },
+        jabatan: jabatanRecord ? {
+          connect: [{ id: jabatanRecord.id }],
+        } : undefined,
       },
     });
     createdKaryawan.push(karyawan);

@@ -8,11 +8,33 @@ const router = Router()
 
 router.get('/', allowRoles(ROLES.HR), async (req, res) => {
     try {
+        const { departemenId } = req.query;
+        
+        const whereClause = {};
+        if (departemenId) {
+            whereClause.departemenId = departemenId;
+        }
+
         const jabatan = await prisma.jabatan.findMany({
-           select: {
+            where: whereClause,
+            select: {
                 id: true,
-                nama: true
-            }
+                nama: true,
+                level: true,
+                departemenId: true,
+                deskripsi: true,
+                departemen: {
+                    select: {
+                        id: true,
+                        nama: true
+                    }
+                }
+            },
+            orderBy: [
+                { departemenId: 'asc' },
+                { level: 'asc' },
+                { nama: 'asc' }
+            ]
         });
         res.json({
             status: 200,
@@ -29,40 +51,86 @@ router.get('/', allowRoles(ROLES.HR), async (req, res) => {
 })
 
 router.post('/', allowRoles(ROLES.HR), async (req, res) => {
-    const { nama } = req.body;
-    if (!nama) {
-        return res.status(400).json({ message: 'nama wajib diisi' });
+    const { nama, departemenId, level, deskripsi } = req.body;
+    
+    if (!nama || !departemenId) {
+        return res.status(400).json({ message: 'nama dan departemenId wajib diisi' });
     }
+    
     try {
+        // Validate departemen exists
+        const deptExists = await prisma.departemen.findUnique({
+            where: { id: departemenId }
+        });
+        if (!deptExists) {
+            return res.status(404).json({ message: 'Departemen tidak ditemukan' });
+        }
+
         const jabatan = await prisma.jabatan.create({
             data: {
                 id: randomUUID(), 
-                nama
+                nama,
+                departemenId,
+                level: level || null,
+                deskripsi: deskripsi || null
             },
+            include: {
+                departemen: {
+                    select: { id: true, nama: true }
+                }
+            }
         });
         res.status(201).json({ status: 201, message: 'Jabatan created', data: jabatan });
     } catch (error) {
         console.log(error);
+        if (error.code === 'P2002') {
+            return res.status(400).json({ message: 'Jabatan dengan nama ini sudah ada di departemen tersebut' });
+        }
         res.status(500).json({ message: "Internal server error" });
     }
 })
 
 router.put('/:id', allowRoles(ROLES.HR), async (req, res) => {
     const { id } = req.params;
-    const { nama } = req.body;
+    const { nama, departemenId, level, deskripsi } = req.body;
 
     try {
         const existing = await prisma.jabatan.findUnique({ where: { id } });
         if (!existing) {
             return res.status(404).json({ message: `Jabatan ${id} not found` });
         }
+
+        // Validate departemen if provided
+        if (departemenId && departemenId !== existing.departemenId) {
+            const deptExists = await prisma.departemen.findUnique({
+                where: { id: departemenId }
+            });
+            if (!deptExists) {
+                return res.status(404).json({ message: 'Departemen tidak ditemukan' });
+            }
+        }
+
+        const updateData = {};
+        if (nama !== undefined) updateData.nama = nama;
+        if (departemenId !== undefined) updateData.departemenId = departemenId;
+        if (level !== undefined) updateData.level = level;
+        if (deskripsi !== undefined) updateData.deskripsi = deskripsi;
+
         const jabatan = await prisma.jabatan.update({
             where: { id },
-            data: { nama }
+            data: updateData,
+            include: {
+                departemen: {
+                    select: { id: true, nama: true }
+                }
+            }
         });
         res.json({ status: 200, message: 'Jabatan updated', data: jabatan })
     } catch (error) {
         console.log(error);
+        if (error.code === 'P2002') {
+            return res.status(400).json({ message: 'Jabatan dengan nama ini sudah ada di departemen tersebut' });
+        }
         res.status(500).json({ message: "Internal server error" });
     }
 })

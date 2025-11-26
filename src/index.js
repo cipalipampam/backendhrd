@@ -11,6 +11,7 @@ import departemen from './router/data-master/departemen.js';
 import jabatan from './router/data-master/jabatan.js';
 import karyawan from './router/karyawan/karyawan.js';
 import kpi from './router/karyawan/kpi.js';
+import kpiBulanan from './router/karyawan/kpi-bulanan.js';
 import penghargaan from './router/karyawan/penghargaan.js';
 import kehadiran from './router/karyawan/kehadiran.js';
 import pelatihan from './router/pelatihan/pelatihan.js';
@@ -38,6 +39,7 @@ app.use('/api/jabatan', accessValidation, jabatan);
 //data karyawan - HR can see all, karyawan can only see their own
 app.use('/api/karyawan', accessValidation, karyawan);
 app.use('/api/kpi', accessValidation, kpi);
+app.use('/api/kpi/bulanan', accessValidation, kpiBulanan);
 app.use('/api/penghargaan', accessValidation, penghargaan);
 app.use('/api/kehadiran', accessValidation, kehadiran);
 

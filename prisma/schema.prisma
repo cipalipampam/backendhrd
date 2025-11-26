@@ -12,6 +12,7 @@ model departemen {
   nama      String     @unique(map: "Departemen_nama_key")
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  jabatan   jabatan[]
   karyawan  karyawan[] @relation("departemenonkaryawan")
 }
 
@@ -27,11 +28,18 @@ model featuresnapshot {
 }
 
 model jabatan {
-  id        String     @id
-  nama      String     @unique(map: "Jabatan_nama_key")
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  karyawan  karyawan[] @relation("jabatanonkaryawan")
+  id           String     @id
+  nama         String
+  level        String?    // "Junior", "Staff", "Senior", "Lead", "Manager", "Director"
+  departemenId String
+  deskripsi    String?    @db.Text
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  departemen   departemen @relation(fields: [departemenId], references: [id], map: "Jabatan_departemenId_fkey")
+  karyawan     karyawan[] @relation("jabatanonkaryawan")
+
+  @@unique([nama, departemenId], map: "Jabatan_nama_departemenId_key")
+  @@index([departemenId], map: "Jabatan_departemenId_idx")
 }
 
 model karyawan {
