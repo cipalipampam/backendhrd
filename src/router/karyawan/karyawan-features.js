@@ -35,26 +35,53 @@ const ENCODING = {
 };
 
 // Helper function to calculate age
-function calculateAge(birthDate) {
-  const today = new Date();
+// function calculateAge(birthDate) {
+//   const today = new Date();
+//   const birth = new Date(birthDate);
+//   let age = today.getFullYear() - birth.getFullYear();
+//   const monthDiff = today.getMonth() - birth.getMonth();
+//   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+//     age--;
+//   }
+//   return age;
+// }
+
+function calculateAge(birthDate, targetYear = null) {
   const birth = new Date(birthDate);
+
+  // Jika ada targetYear → gunakan tanggal 1 Januari targetYear
+  const today = targetYear
+    ? new Date(targetYear, 12) // bulan 0 = Januari
+    : new Date();
+
   let age = today.getFullYear() - birth.getFullYear();
+
   const monthDiff = today.getMonth() - birth.getMonth();
+
+  // Cek apakah ulang tahunnya belum lewat pada tahun target
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
     age--;
   }
+  if (age < 0) age = 0;
   return age;
 }
 
+
 // Helper function to calculate working years
-function calculateWorkingYears(joinDate) {
-  const today = new Date();
+function calculateWorkingYears(joinDate, targetYear = null) {
   const join = new Date(joinDate);
+
+  // Jika ada targetYear → gunakan tanggal 1 Januari targetYear
+  const today = targetYear
+    ? new Date(targetYear, 12) // bulan 0 = Januari
+    : new Date();
+
   let years = today.getFullYear() - join.getFullYear();
   const monthDiff = today.getMonth() - join.getMonth();
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < join.getDate())) {
     years--;
   }
+  if (years < 0) years = 0;
   return years;
 }
 
@@ -119,11 +146,11 @@ router.get("/", allowRoles(ROLES.HR), async (req, res) => {
 
       // Umur
       const umur = karyawan.tanggal_lahir
-        ? calculateAge(karyawan.tanggal_lahir)
+        ? calculateAge(karyawan.tanggal_lahir, targetYear)
         : 0;
 
       // Lama Bekerja
-      const lamaBekerja = calculateWorkingYears(karyawan.tanggal_masuk);
+      const lamaBekerja = calculateWorkingYears(karyawan.tanggal_masuk, targetYear);
 
       // KPI > 80% (untuk tahun yang ditentukan)
       const kpiData = karyawan.kpi[0]; // sudah difilter by year
@@ -248,9 +275,9 @@ router.get("/:id", allowRoles(ROLES.HR), async (req, res) => {
       ENCODING.jalur_rekrut[karyawan.jalur_rekrut] || 0;
     const jumlahPelatihan = karyawan.pelatihandetail.length;
     const umur = karyawan.tanggal_lahir
-      ? calculateAge(karyawan.tanggal_lahir)
+      ? calculateAge(karyawan.tanggal_lahir, targetYear)
       : 0;
-    const lamaBekerja = calculateWorkingYears(karyawan.tanggal_masuk);
+    const lamaBekerja = calculateWorkingYears(karyawan.tanggal_masuk, targetYear);
     const kpiData = karyawan.kpi[0];
     const kpiDiatas80 = kpiData && kpiData.score > 80 ? 1 : 0;
     const adaPenghargaan = karyawan.penghargaan.length > 0 ? 1 : 0;
