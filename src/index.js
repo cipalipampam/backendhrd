@@ -12,6 +12,7 @@ import jabatan from './router/data-master/jabatan.js';
 import karyawan from './router/karyawan/karyawan.js';
 import kpi from './router/karyawan/kpi.js';
 import penghargaan from './router/karyawan/penghargaan.js';
+import kehadiran from './router/karyawan/kehadiran.js';
 import pelatihan from './router/pelatihan/pelatihan.js';
 import xgboostModel from './router/promotion-ai/xgboost-model.js';
 import promotion from './router/promotion-ai/promotion.js';
@@ -38,6 +39,7 @@ app.use('/api/jabatan', accessValidation, jabatan);
 app.use('/api/karyawan', accessValidation, karyawan);
 app.use('/api/kpi', accessValidation, kpi);
 app.use('/api/penghargaan', accessValidation, penghargaan);
+app.use('/api/kehadiran', accessValidation, kehadiran);
 
 // pelatihan - HR can manage all, karyawan can see their own
 app.use('/api/pelatihan', accessValidation, pelatihan);

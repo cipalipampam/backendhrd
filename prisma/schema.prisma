@@ -51,6 +51,7 @@ model karyawan {
   kpi             kpi[]
   pelatihandetail pelatihandetail[]
   rating          rating[]
+  kehadiran       kehadiran[]
   departemen      departemen[]      @relation("departemenonkaryawan")
   jabatan         jabatan[]         @relation("jabatanonkaryawan")
   penghargaan     penghargaan[]     @relation("penghargaanonkaryawan")
@@ -184,6 +185,32 @@ model user {
 enum karyawan_gender {
   Pria
   Wanita
+}
+
+model kehadiran {
+  id           String            @id @default(cuid())
+  karyawanId   String
+  tanggal      DateTime          @default(now())
+  waktuMasuk   DateTime?
+  waktuKeluar  DateTime?
+  status       kehadiran_status  @default(BELUM_ABSEN)
+  lokasi       String?
+  keterangan   String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  karyawan     karyawan          @relation(fields: [karyawanId], references: [id], map: "Kehadiran_karyawanId_fkey")
+
+  @@unique([karyawanId, tanggal], map: "Kehadiran_karyawanId_tanggal_key")
+  @@index([karyawanId], map: "Kehadiran_karyawanId_idx")
+}
+
+enum kehadiran_status {
+  HADIR
+  TERLAMBAT
+  IZIN
+  SAKIT
+  ALPA
+  BELUM_ABSEN
 }
 
 enum user_role {

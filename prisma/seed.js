@@ -812,6 +812,74 @@ async function main() {
   }
   console.log("✅ Penghargaan data created");
 
+  // -------------------- Kehadiran Data (30 hari terakhir) --------------------
+  const today = new Date();
+  const kehadiranData = [];
+
+  // Generate kehadiran untuk 30 hari terakhir untuk setiap karyawan
+  for (let day = 29; day >= 0; day--) {
+    const tanggal = new Date(today);
+    tanggal.setDate(tanggal.getDate() - day);
+    tanggal.setHours(0, 0, 0, 0);
+
+    const dayOfWeek = tanggal.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    // Skip weekend
+    if (isWeekend) continue;
+
+    for (const karyawan of createdKaryawan) {
+      // Random status dengan distribusi realistis
+      const rand = Math.random();
+      let status, waktuMasuk, waktuKeluar, keterangan;
+
+      if (rand < 0.75) {
+        // 75% hadir tepat waktu
+        status = "HADIR";
+        waktuMasuk = new Date(tanggal);
+        waktuMasuk.setHours(7, 30 + Math.floor(Math.random() * 30), 0); // 7:30 - 8:00
+        waktuKeluar = new Date(tanggal);
+        waktuKeluar.setHours(17, Math.floor(Math.random() * 60), 0); // 17:00 - 18:00
+      } else if (rand < 0.90) {
+        // 15% terlambat
+        status = "TERLAMBAT";
+        waktuMasuk = new Date(tanggal);
+        waktuMasuk.setHours(8, 10 + Math.floor(Math.random() * 50), 0); // 8:10 - 9:00
+        waktuKeluar = new Date(tanggal);
+        waktuKeluar.setHours(17, Math.floor(Math.random() * 60), 0);
+        keterangan = "Terlambat karena kemacetan";
+      } else if (rand < 0.95) {
+        // 5% izin
+        status = "IZIN";
+        keterangan = "Keperluan keluarga";
+      } else if (rand < 0.98) {
+        // 3% sakit
+        status = "SAKIT";
+        keterangan = "Sakit flu";
+      } else {
+        // 2% alpa
+        status = "ALPA";
+      }
+
+      kehadiranData.push({
+        karyawanId: karyawan.id,
+        tanggal,
+        waktuMasuk,
+        waktuKeluar,
+        status,
+        lokasi: waktuMasuk ? "Kantor Pusat Jakarta" : null,
+        keterangan,
+      });
+    }
+  }
+
+  // Bulk create kehadiran data
+  await prisma.kehadiran.createMany({
+    data: kehadiranData,
+    skipDuplicates: true,
+  });
+  console.log(`✅ Kehadiran data created (${kehadiranData.length} records)`);
+
   console.log("🎉 Seeding completed successfully!");
   console.log("\n📋 Test Accounts:");
   console.log("HR Manager: hr.manager@company.com / hr123");
