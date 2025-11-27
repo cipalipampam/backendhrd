@@ -14,6 +14,7 @@ import kpi from './router/karyawan/kpi.js';
 import kpiBulanan from './router/karyawan/kpi-bulanan.js';
 import penghargaan from './router/karyawan/penghargaan.js';
 import kehadiran from './router/karyawan/kehadiran.js';
+import izinRouter from './router/karyawan/izin.js';
 import pelatihan from './router/pelatihan/pelatihan.js';
 import xgboostModel from './router/promotion-ai/xgboost-model.js';
 import promotion from './router/promotion-ai/promotion.js';
@@ -42,6 +43,11 @@ app.use('/api/kpi', accessValidation, kpi);
 app.use('/api/kpi/bulanan', accessValidation, kpiBulanan);
 app.use('/api/penghargaan', accessValidation, penghargaan);
 app.use('/api/kehadiran', accessValidation, kehadiran);
+app.use('/api/kehadiran', accessValidation, izinRouter);
+
+// serve uploaded files (izin attachments)
+import path from 'path';
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
 // pelatihan - HR can manage all, karyawan can see their own
 app.use('/api/pelatihan', accessValidation, pelatihan);

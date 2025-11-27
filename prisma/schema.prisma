@@ -60,6 +60,7 @@ model karyawan {
   pelatihandetail pelatihandetail[]
   rating          rating[]
   kehadiran       kehadiran[]
+  izinRequest     izinRequest[]
   departemen      departemen[]      @relation("departemenonkaryawan")
   jabatan         jabatan[]         @relation("jabatanonkaryawan")
   penghargaan     penghargaan[]     @relation("penghargaanonkaryawan")
@@ -219,6 +220,34 @@ enum kehadiran_status {
   SAKIT
   ALPA
   BELUM_ABSEN
+}
+
+model izinRequest {
+  id          String         @id @default(cuid())
+  karyawanId  String
+  tanggal     DateTime
+  jenis       izin_jenis
+  keterangan  String?
+  fileUrl     String?
+  status      izin_status    @default(PENDING)
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  karyawan    karyawan       @relation(fields: [karyawanId], references: [id], map: "IzinRequest_karyawanId_fkey")
+
+  @@index([karyawanId], map: "IzinRequest_karyawanId_idx")
+}
+
+enum izin_status {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum izin_jenis {
+  IZIN
+  SAKIT
 }
 
 enum user_role {

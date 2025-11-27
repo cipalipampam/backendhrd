@@ -1,11 +1,11 @@
-﻿import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("ðŸŒ± Starting database seeding...");
+  console.log("🌱 Starting database seeding...");
 
   // -------------------- Departemen (hanya 3) --------------------
   const departemenNames = [
@@ -32,7 +32,7 @@ async function main() {
     });
     createdDepartemen.push(dept);
   }
-  console.log("âœ… Departemen created");
+  console.log("✅ Departemen created");
 
   // -------------------- Jabatan (per Departemen) --------------------
   const jabatanData = [
@@ -123,7 +123,7 @@ async function main() {
       },
     });
   }
-  console.log("âœ… Jabatan created (per departemen)");
+  console.log("✅ Jabatan created (per departemen)");
 
   // -------------------- KPI Indicators (2 per departemen) --------------------
   const kpiIndicators = [
@@ -181,7 +181,7 @@ async function main() {
     });
     createdIndicators.push(created);
   }
-  console.log("âœ… KPI Indicators created");
+  console.log("✅ KPI Indicators created");
 
   // Helper function to get indicators by department
   const getIndicatorsByDepartment = (deptName) => {
@@ -427,7 +427,7 @@ async function main() {
     createdKaryawan.push(karyawan);
   }
 
-  console.log("âœ… Users and Karyawan created");
+  console.log("✅ Users and Karyawan created");
 
   // -------------------- KPI Data with Details (Simplified) --------------------
 
@@ -508,7 +508,7 @@ async function main() {
   const lisaOpsIndicators = getIndicatorsByDepartment("Operations");
   if (lisaOpsIndicators.length === 0) {
     // Jika tidak ada KPI untuk Operations, skip
-    console.log("âš ï¸ No KPI indicators for Operations department");
+    console.log("⚠️ No KPI indicators for Operations department");
   } else {
     await createKPIWithDetails(createdKaryawan[5].id, 2024, 82.0, lisaOpsIndicators, [
       { indikatorIndex: 0, target: 90, realisasi: 85 },
@@ -518,7 +518,7 @@ async function main() {
   // Robert Martinez (Data Analyst) - 2023, 2024
   const robertAnalyticsIndicators = getIndicatorsByDepartment("Analytics");
   if (robertAnalyticsIndicators.length === 0) {
-    console.log("âš ï¸ No KPI indicators for Analytics department");
+    console.log("⚠️ No KPI indicators for Analytics department");
   } else {
     await createKPIWithDetails(createdKaryawan[6].id, 2023, 87.0, robertAnalyticsIndicators, [
       { indikatorIndex: 0, target: 90, realisasi: 88 },
@@ -537,7 +537,7 @@ async function main() {
   // Alex Thompson (Finance) - 2023, 2024
   const alexFinanceIndicators = getIndicatorsByDepartment("Finance");
   if (alexFinanceIndicators.length === 0) {
-    console.log("âš ï¸ No KPI indicators for Finance department");
+    console.log("⚠️ No KPI indicators for Finance department");
   } else {
     await createKPIWithDetails(createdKaryawan[8].id, 2023, 86.0, alexFinanceIndicators, [
       { indikatorIndex: 0, target: 95, realisasi: 90 },
@@ -550,14 +550,14 @@ async function main() {
   // Sophia Lee (R&D) - 2024
   const sophiaRnDIndicators = getIndicatorsByDepartment("R&D");
   if (sophiaRnDIndicators.length === 0) {
-    console.log("âš ï¸ No KPI indicators for R&D department");
+    console.log("⚠️ No KPI indicators for R&D department");
   } else {
     await createKPIWithDetails(createdKaryawan[9].id, 2024, 80.0, sophiaRnDIndicators, [
       { indikatorIndex: 0, target: 85, realisasi: 82 },
     ]);
   }
 
-  console.log("âœ… KPI data with details created");
+  console.log("✅ KPI data with details created");
 
   // -------------------- Rating Data --------------------
   const ratingData = [
@@ -613,7 +613,7 @@ async function main() {
       },
     });
   }
-  console.log("âœ… Rating data created");
+  console.log("✅ Rating data created");
 
   // -------------------- Pelatihan Data (Simplified) --------------------
   const pelatihanData = [
@@ -670,7 +670,7 @@ async function main() {
       });
     }
   }
-  console.log("âœ… Pelatihan data created");
+  console.log("✅ Pelatihan data created");
 
   // -------------------- Penghargaan Data (Simplified) --------------------
   const penghargaanData = [
@@ -704,7 +704,7 @@ async function main() {
       },
     });
   }
-  console.log("âœ… Penghargaan data created");
+  console.log("✅ Penghargaan data created");
 
   // -------------------- Kehadiran Data (30 hari terakhir) --------------------
   const today = new Date();
@@ -769,10 +769,10 @@ async function main() {
     data: kehadiranData,
     skipDuplicates: true,
   });
-  console.log(`âœ… Kehadiran data created (${kehadiranData.length} records)`);
+  console.log(`✅ Kehadiran data created (${kehadiranData.length} records)`);
 
-  console.log("ðŸŽ‰ Seeding completed successfully!");
-  console.log("\nðŸ“‹ Test Accounts:");
+  console.log("🎉 Seeding completed successfully!");
+  console.log("\n📋 Test Accounts:");
   console.log("=" .repeat(60));
   console.log("HR Accounts:");
   console.log("1. hr.manager@company.com / hr123 (Sarah Johnson - HR Manager)");
@@ -787,6 +787,664 @@ async function main() {
   console.log("9. alex.finance@company.com / karyawan123 (Alex - Accountant)");
   console.log("10. sophia.rd@company.com / karyawan123 (Sophia - Research Assistant)");
   console.log("=" .repeat(60));
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());
+      karyawanId: createdKaryawan[0].id,
+      year: 2022,
+      score: 85.5,
+      updatedAt: new Date(),
+    },
+  });
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: sarahKPI2022.id,
+        indikatorId: sarahHRIndicators[0].id, // Employee Retention Rate
+        target: 90,
+        realisasi: 88,
+        score: (88 / 90) * 0.5 * 100,
+      },
+      {
+        id: randomUUID(),
+        kpiId: sarahKPI2022.id,
+        indikatorId: sarahHRIndicators[1].id, // Training Completion Rate
+        target: 95,
+        realisasi: 92,
+        score: (92 / 95) * 0.5 * 100,
+      },
+    ],
+  });
+
+  // Sarah Johnson - 2023
+  const sarahKPI2023 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[0].id,
+        year: 2023,
+      },
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[0].id,
+      year: 2023,
+      score: 88.0,
+      updatedAt: new Date(),
+    },
+  });
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: sarahKPI2023.id,
+        indikatorId: sarahHRIndicators[0].id,
+        target: 92,
+        realisasi: 91,
+        score: (91 / 92) * 0.5 * 100,
+      },
+      {
+        id: randomUUID(),
+        kpiId: sarahKPI2023.id,
+        indikatorId: sarahHRIndicators[1].id,
+        target: 95,
+        realisasi: 94,
+        score: (94 / 95) * 0.5 * 100,
+      },
+    ],
+  });
+
+  // Sarah Johnson - 2024
+  const sarahKPI2024 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[0].id,
+        year: 2024,
+      },
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[0].id,
+      year: 2024,
+      score: 92.5,
+      updatedAt: new Date(),
+    },
+  });
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: sarahKPI2024.id,
+        indikatorId: sarahHRIndicators[0].id,
+        target: 93,
+        realisasi: 95,
+        score: (95 / 93) * 0.5 * 100,
+      },
+      {
+        id: randomUUID(),
+        kpiId: sarahKPI2024.id,
+        indikatorId: sarahHRIndicators[1].id,
+        target: 96,
+        realisasi: 97,
+        score: (97 / 96) * 0.5 * 100,
+      },
+    ],
+  });
+
+  // John Doe (Technology Developer) - 2022, 2023, 2024
+  const johnTechIndicators = getIndicatorsByDepartment("Technology");
+
+  const johnKPI2022 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[1].id,
+        year: 2022,
+      },
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[1].id,
+      year: 2022,
+      score: 78.0,
+      updatedAt: new Date(),
+    },
+  });
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: johnKPI2022.id,
+        indikatorId: johnTechIndicators[0].id, // Project Delivery Rate
+        target: 90,
+        realisasi: 82,
+        score: (82 / 90) * 0.6 * 100,
+      },
+      {
+        id: randomUUID(),
+        kpiId: johnKPI2022.id,
+        indikatorId: johnTechIndicators[1].id, // Code Quality Score
+        target: 85,
+        realisasi: 78,
+        score: (78 / 85) * 0.4 * 100,
+      },
+    ],
+  });
+
+  const johnKPI2023 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[1].id,
+        year: 2023,
+      },
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[1].id,
+      year: 2023,
+      score: 85.0,
+      updatedAt: new Date(),
+    },
+  });
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: johnKPI2023.id,
+        indikatorId: johnTechIndicators[0].id,
+        target: 92,
+        realisasi: 90,
+        score: (90 / 92) * 0.6 * 100,
+      },
+      {
+        id: randomUUID(),
+        kpiId: johnKPI2023.id,
+        indikatorId: johnTechIndicators[1].id,
+        target: 88,
+        realisasi: 86,
+        score: (86 / 88) * 0.4 * 100,
+      },
+    ],
+  });
+
+  const johnKPI2024 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[1].id,
+        year: 2024,
+      },
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[1].id,
+      year: 2024,
+      score: 88.5,
+      updatedAt: new Date(),
+    },
+  });
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: johnKPI2024.id,
+        indikatorId: johnTechIndicators[0].id,
+        target: 93,
+        realisasi: 92,
+        score: (92 / 93) * 0.6 * 100,
+      },
+      {
+        id: randomUUID(),
+        kpiId: johnKPI2024.id,
+        indikatorId: johnTechIndicators[1].id,
+        target: 90,
+        realisasi: 91,
+        score: (91 / 90) * 0.4 * 100,
+      },
+    ],
+  });
+
+  // Jane Smith (Sales & Marketing Manager) - 2021-2024
+  const janeSalesIndicators = getIndicatorsByDepartment("Sales & Marketing");
+
+  const janeKPI2021 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[2].id,
+        year: 2021,
+      },
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[2].id,
+      year: 2021,
+      score: 90.0,
+      updatedAt: new Date(),
+    },
+  });
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2021.id,
+        indikatorId: janeSalesIndicators[0].id, // Sales Revenue Achievement
+        target: 100,
+        realisasi: 105,
+        score: (105 / 100) * 0.7 * 100,
+      },
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2021.id,
+        indikatorId: janeSalesIndicators[1].id, // Customer Retention
+        target: 85,
+        realisasi: 82,
+        score: (82 / 85) * 0.3 * 100,
+      },
+    ],
+  });
+
+  const janeKPI2022 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[2].id,
+        year: 2022,
+      },
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[2].id,
+      year: 2022,
+      score: 93.5,
+      updatedAt: new Date(),
+    },
+  });
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2022.id,
+        indikatorId: janeSalesIndicators[0].id,
+        target: 110,
+        realisasi: 118,
+        score: (118 / 110) * 0.7 * 100,
+      },
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2022.id,
+        indikatorId: janeSalesIndicators[1].id,
+        target: 87,
+        realisasi: 88,
+        score: (88 / 87) * 0.3 * 100,
+      },
+    ],
+  });
+
+  const janeKPI2023 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[2].id,
+        year: 2023,
+      },
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[2].id,
+      year: 2023,
+      score: 95.0,
+      updatedAt: new Date(),
+    },
+  });
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2023.id,
+        indikatorId: janeSalesIndicators[0].id,
+        target: 120,
+        realisasi: 128,
+        score: (128 / 120) * 0.7 * 100,
+      },
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2023.id,
+        indikatorId: janeSalesIndicators[1].id,
+        target: 90,
+        realisasi: 91,
+        score: (91 / 90) * 0.3 * 100,
+      },
+    ],
+  });
+
+  const janeKPI2024 = await prisma.kpi.upsert({
+    where: {
+      karyawanId_year: {
+        karyawanId: createdKaryawan[2].id,
+        year: 2024,
+      },
+    },
+    update: {},
+    create: {
+      id: randomUUID(),
+      karyawanId: createdKaryawan[2].id,
+      year: 2024,
+      score: 96.5,
+      updatedAt: new Date(),
+    },
+  });
+
+  await prisma.kpiDetail.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2024.id,
+        indikatorId: janeSalesIndicators[0].id,
+        target: 125,
+        realisasi: 135,
+        score: (135 / 125) * 0.7 * 100,
+      },
+      {
+        id: randomUUID(),
+        kpiId: janeKPI2024.id,
+        indikatorId: janeSalesIndicators[1].id,
+        target: 92,
+        realisasi: 94,
+        score: (94 / 92) * 0.3 * 100,
+      },
+    ],
+  });
+
+  console.log("✅ KPI data with details created");
+
+  // -------------------- Rating Data --------------------
+  const ratingData = [
+    // Sarah Johnson
+    {
+      karyawanId: createdKaryawan[0].id,
+      year: 2022,
+      score: 4.2,
+      notes: "Good leadership skills",
+    },
+    {
+      karyawanId: createdKaryawan[0].id,
+      year: 2023,
+      score: 4.4,
+      notes: "Improved team management",
+    },
+    {
+      karyawanId: createdKaryawan[0].id,
+      year: 2024,
+      score: 4.6,
+      notes: "Excellent HR management",
+    },
+
+    // John Doe
+    {
+      karyawanId: createdKaryawan[1].id,
+      year: 2022,
+      score: 3.8,
+      notes: "Good technical skills",
+    },
+    {
+      karyawanId: createdKaryawan[1].id,
+      year: 2023,
+      score: 4.1,
+      notes: "Improved problem solving",
+    },
+    {
+      karyawanId: createdKaryawan[1].id,
+      year: 2024,
+      score: 4.3,
+      notes: "Strong developer",
+    },
+
+    // Jane Smith
+    {
+      karyawanId: createdKaryawan[2].id,
+      year: 2021,
+      score: 4.5,
+      notes: "Excellent sales results",
+    },
+    {
+      karyawanId: createdKaryawan[2].id,
+      year: 2022,
+      score: 4.6,
+      notes: "Outstanding sales performance",
+    },
+    {
+      karyawanId: createdKaryawan[2].id,
+      year: 2023,
+      score: 4.7,
+      notes: "Top sales manager",
+    },
+    {
+      karyawanId: createdKaryawan[2].id,
+      year: 2024,
+      score: 4.8,
+      notes: "Exceptional leadership",
+    },
+  ];
+
+  for (const rating of ratingData) {
+    await prisma.rating.upsert({
+      where: {
+        karyawanId_year: {
+          karyawanId: rating.karyawanId,
+          year: rating.year,
+        },
+      },
+      update: {},
+      create: {
+        id: randomUUID(),
+        ...rating,
+        updatedAt: new Date(),
+      },
+    });
+  }
+  console.log("✅ Rating data created");
+
+  // -------------------- Pelatihan Data --------------------
+  const pelatihanData = [
+    {
+      nama: "Leadership Development Program",
+      tanggal: new Date("2024-01-15"),
+      lokasi: "Jakarta Convention Center",
+      peserta: [
+        {
+          karyawanId: createdKaryawan[0].id,
+          skor: 95,
+          catatan: "Excellent leadership potential",
+        },
+        {
+          karyawanId: createdKaryawan[2].id,
+          skor: 92,
+          catatan: "Strong leadership skills",
+        },
+      ],
+    },
+    {
+      nama: "Software Development Best Practices",
+      tanggal: new Date("2024-04-05"),
+      lokasi: "Jakarta Tech Hub",
+      peserta: [
+        {
+          karyawanId: createdKaryawan[1].id,
+          skor: 93,
+          catatan: "Excellent technical skills",
+        },
+      ],
+    },
+    {
+      nama: "Sales Strategy Workshop",
+      tanggal: new Date("2024-05-12"),
+      lokasi: "Jakarta Business Center",
+      peserta: [
+        {
+          karyawanId: createdKaryawan[2].id,
+          skor: 96,
+          catatan: "Outstanding sales knowledge",
+        },
+        {
+          karyawanId: createdKaryawan[0].id,
+          skor: 86,
+          catatan: "Good understanding of sales",
+        },
+      ],
+    },
+  ];
+
+  for (const pelatihan of pelatihanData) {
+    const createdPelatihan = await prisma.pelatihan.create({
+      data: {
+        id: randomUUID(),
+        nama: pelatihan.nama,
+        tanggal: pelatihan.tanggal,
+        lokasi: pelatihan.lokasi,
+        updatedAt: new Date(),
+      },
+    });
+
+    for (const peserta of pelatihan.peserta) {
+      await prisma.pelatihandetail.create({
+        data: {
+          id: randomUUID(),
+          pelatihanId: createdPelatihan.id,
+          karyawanId: peserta.karyawanId,
+          skor: peserta.skor,
+          catatan: peserta.catatan,
+          updatedAt: new Date(),
+        },
+      });
+    }
+  }
+  console.log("✅ Pelatihan data created");
+
+  // -------------------- Penghargaan Data --------------------
+  const penghargaanData = [
+    {
+      nama: "Employee of the Year 2024",
+      tahun: new Date("2024-12-31"),
+      karyawan: [createdKaryawan[2].id], // Jane Smith
+    },
+    {
+      nama: "Best Team Player 2024",
+      tahun: new Date("2024-12-31"),
+      karyawan: [createdKaryawan[1].id], // John Doe
+    },
+    {
+      nama: "Leadership Excellence 2024",
+      tahun: new Date("2024-12-31"),
+      karyawan: [createdKaryawan[0].id, createdKaryawan[2].id], // Sarah Johnson & Jane Smith
+    },
+  ];
+
+  for (const penghargaan of penghargaanData) {
+    await prisma.penghargaan.create({
+      data: {
+        id: randomUUID(),
+        nama: penghargaan.nama,
+        tahun: penghargaan.tahun,
+        updatedAt: new Date(),
+        karyawan: {
+          connect: penghargaan.karyawan.map((id) => ({ id })),
+        },
+      },
+    });
+  }
+  console.log("✅ Penghargaan data created");
+
+  // -------------------- Kehadiran Data (30 hari terakhir) --------------------
+  const today = new Date();
+  const kehadiranData = [];
+
+  // Generate kehadiran untuk 30 hari terakhir untuk setiap karyawan
+  for (let day = 29; day >= 0; day--) {
+    const tanggal = new Date(today);
+    tanggal.setDate(tanggal.getDate() - day);
+    tanggal.setHours(0, 0, 0, 0);
+
+    const dayOfWeek = tanggal.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    // Skip weekend
+    if (isWeekend) continue;
+
+    for (const karyawan of createdKaryawan) {
+      // Random status dengan distribusi realistis
+      const rand = Math.random();
+      let status, waktuMasuk, waktuKeluar, keterangan;
+
+      if (rand < 0.75) {
+        // 75% hadir tepat waktu
+        status = "HADIR";
+        waktuMasuk = new Date(tanggal);
+        waktuMasuk.setHours(7, 30 + Math.floor(Math.random() * 30), 0); // 7:30 - 8:00
+        waktuKeluar = new Date(tanggal);
+        waktuKeluar.setHours(17, Math.floor(Math.random() * 60), 0); // 17:00 - 18:00
+      } else if (rand < 0.90) {
+        // 15% terlambat
+        status = "TERLAMBAT";
+        waktuMasuk = new Date(tanggal);
+        waktuMasuk.setHours(8, 10 + Math.floor(Math.random() * 50), 0); // 8:10 - 9:00
+        waktuKeluar = new Date(tanggal);
+        waktuKeluar.setHours(17, Math.floor(Math.random() * 60), 0);
+        keterangan = "Terlambat karena kemacetan";
+      } else if (rand < 0.95) {
+        // 5% izin
+        status = "IZIN";
+        keterangan = "Keperluan keluarga";
+      } else if (rand < 0.98) {
+        // 3% sakit
+        status = "SAKIT";
+        keterangan = "Sakit flu";
+      } else {
+        // 2% alpa
+        status = "ALPA";
+      }
+
+      kehadiranData.push({
+        karyawanId: karyawan.id,
+        tanggal,
+        waktuMasuk,
+        waktuKeluar,
+        status,
+        lokasi: waktuMasuk ? "Kantor Pusat Jakarta" : null,
+        keterangan,
+      });
+    }
+  }
+
+  // Bulk create kehadiran data
+  await prisma.kehadiran.createMany({
+    data: kehadiranData,
+    skipDuplicates: true,
+  });
+  console.log(`✅ Kehadiran data created (${kehadiranData.length} records)`);
+
+  console.log("🎉 Seeding completed successfully!");
+  console.log("\n📋 Test Accounts:");
+  console.log("HR Manager: hr.manager@company.com / hr123");
+  console.log("John Doe (Tech): john.doe@company.com / karyawan123");
+  console.log("Jane Smith (Sales): jane.smith@company.com / karyawan123");
 }
 
 main()
