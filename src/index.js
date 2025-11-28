@@ -12,6 +12,7 @@ import jabatan from './router/data-master/jabatan.js';
 import karyawan from './router/karyawan/karyawan.js';
 import kpi from './router/karyawan/kpi.js';
 import kpiBulanan from './router/karyawan/kpi-bulanan.js';
+import kpiKaryawan from './router/karyawan/kpi-karyawan.js';
 import penghargaan from './router/karyawan/penghargaan.js';
 import kehadiran from './router/karyawan/kehadiran.js';
 import izinRouter from './router/karyawan/izin.js';
@@ -38,6 +39,9 @@ app.use('/api/departemen', accessValidation, departemen);
 app.use('/api/jabatan', accessValidation, jabatan);
 
 //data karyawan - HR can see all, karyawan can only see their own
+// PINDAHKAN route yang lebih spesifik ke atas
+app.use('/api/karyawan/kpi-bulanan', accessValidation, kpiKaryawan);
+app.use('/api/karyawan-features', accessValidation, karyawanFeatures);
 app.use('/api/karyawan', accessValidation, karyawan);
 app.use('/api/kpi', accessValidation, kpi);
 app.use('/api/kpi/bulanan', accessValidation, kpiBulanan);
@@ -56,7 +60,6 @@ app.use('/api/pelatihan', accessValidation, pelatihan);
 app.use('/api/xgboost', accessValidation, xgboostModel);
 app.use('/api/promotion', accessValidation, promotion);
 
-app.use('/api/karyawan-features', accessValidation, karyawanFeatures);
 app.use('/api/predict', accessValidation, predict);
 
 const PORT = process.env.PORT || 3000;
