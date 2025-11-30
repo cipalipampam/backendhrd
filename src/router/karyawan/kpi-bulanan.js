@@ -45,15 +45,17 @@ router.get("/", allowRoles(ROLES.HR), async (req, res) => {
     }
 
     const query = `
-      SELECT
+    SELECT
     d.id AS departemenId,
     d.nama AS departemen,
+
+    vk.tahun,
     vk.bulan,
 
-    /* RATA-RATA KPI KARYAWAN → INILAH KPI DEPARTEMEN */
+    /* KPI DEPARTEMEN = rata-rata KPI Final karyawan */
     AVG(vk.kpiFinal) AS kpiFinalDepartemen,
 
-    /* Optional: tampilkan rata-rata komponen untuk referensi */
+    /* Komponen pendukung untuk analisa */
     AVG(vk.scorePresensi) AS avgScorePresensi,
     AVG(vk.scorePelatihan) AS avgScorePelatihan,
     AVG(vk.totalScoreIndikatorLain) AS avgIndicatorScore,
@@ -62,13 +64,18 @@ router.get("/", allowRoles(ROLES.HR), async (req, res) => {
 FROM v_kpi_karyawan_bulanan vk
 JOIN departemen d
     ON d.id = vk.departemenId
+
 GROUP BY
     d.id,
     d.nama,
+    vk.tahun,
     vk.bulan
+
 ORDER BY
+    vk.tahun DESC,
     vk.bulan DESC,
     d.nama;
+
     `;
 
     // Query raw SQL

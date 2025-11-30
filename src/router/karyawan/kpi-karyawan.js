@@ -33,64 +33,71 @@ router.get("/", allowRoles(ROLES.HR), async (req, res) => {
       });
     }
 
-    // Build filter query
+    // Build filter conditions
+    const whereConditions = [];
     const params = [];
-    let whereClause = "";
 
     if (bulan) {
-      whereClause += " WHERE p.bulan = ?";
+      whereConditions.push("CONCAT(p.tahun, '-', LPAD(p.bulan, 2, '0')) = ?");
       params.push(bulan);
     }
 
     if (karyawanId) {
-      whereClause += whereClause ? " AND k.id = ?" : " WHERE k.id = ?";
+      whereConditions.push("k.id = ?");
       params.push(karyawanId);
     }
 
     if (departemenId) {
-      whereClause += whereClause ? " AND d.id = ?" : " WHERE d.id = ?";
+      whereConditions.push("d.id = ?");
       params.push(departemenId);
     }
 
+    const whereClause = whereConditions.length > 0 
+      ? `WHERE ${whereConditions.join(' AND ')}`
+      : '';
+
     // ================================
-    // QUERY KPI PER KARYAWAN / BULAN
+    // QUERY KPI PER KARYAWAN / BULAN (tanpa CREATE VIEW)
     // ================================
     const query = `
       SELECT
           k.id AS karyawanId,
           k.nama AS namaKaryawan,
-
           d.id AS departemenId,
           d.nama AS departemen,
-
-          p.bulan,
-
-          /* PRESENSI & PELATIHAN */
+          p.tahun,
+          LPAD(p.bulan, 2, '0') AS bulan,
+          
+          -- PRESENSI & PELATIHAN
           p.scorePresensi,
           COALESCE(t.avgPelatihan, 0) AS scorePelatihan,
-
           60 AS bobotPresensi,
           40 AS bobotPelatihan,
-
-          /* INDIKATOR LAIN */
-          COALESCE(kpLain.totalBobotLain, 0) AS totalBobotIndikatorLain,
-          COALESCE(kpLain.totalScoreLain, 0) AS totalScoreIndikatorLain,
-
-          /* KPI FINAL */
-          (
-              (
-                  (p.scorePresensi * 60) +
-                  (COALESCE(t.avgPelatihan, 0) * 40)
-              ) / 100
-              +
-              COALESCE(kpLain.totalScoreLain, 0)
-          ) / (1 + COALESCE(kpLain.totalBobotLain, 0)) AS kpiFinal
+          
+          -- TOTAL BOBOT DAN TOTAL SCORE
+          COALESCE(kpLain.totalBobotIndikatorLain, 0) AS totalBobotIndikatorLain,
+          COALESCE(kpLain.totalScoreIndikatorLain, 0) AS totalScoreIndikatorLain,
+          
+          -- KPI FINAL
+          CASE
+              WHEN kpLain.kpiIndikatorLain IS NULL
+                  THEN (
+                      (p.scorePresensi * 60 + COALESCE(t.avgPelatihan, 0) * 40) / 100
+                  )
+              ELSE (
+                  (
+                      (p.scorePresensi * 60 + COALESCE(t.avgPelatihan, 0) * 40) / 100
+                  )
+                  + kpLain.kpiIndikatorLain
+              ) / 2
+          END AS kpiFinal
 
       FROM (
           /* PRESENSI PER KARYAWAN PER BULAN */
           SELECT 
               kh.karyawanId,
-              DATE_FORMAT(kh.tanggal, '%Y-%m') AS bulan,
+              YEAR(kh.tanggal) AS tahun,
+              MONTH(kh.tanggal) AS bulan,
               (
                   SUM(
                       CASE 
@@ -103,47 +110,51 @@ router.get("/", allowRoles(ROLES.HR), async (req, res) => {
                   ) / COUNT(*)
               ) AS scorePresensi
           FROM kehadiran kh
-          GROUP BY kh.karyawanId, DATE_FORMAT(kh.tanggal, '%Y-%m')
+          GROUP BY kh.karyawanId, YEAR(kh.tanggal), MONTH(kh.tanggal)
       ) p
 
-      /* PELATIHAN PER KARYAWAN PER BULAN */
       LEFT JOIN (
+          /* PELATIHAN PER KARYAWAN PER BULAN */
           SELECT
               pd.karyawanId,
-              DATE_FORMAT(pd.createdAt, '%Y-%m') AS bulan,
+              YEAR(pd.createdAt) AS tahun,
+              MONTH(pd.createdAt) AS bulan,
               AVG(pd.skor) AS avgPelatihan
           FROM pelatihandetail pd
-          GROUP BY pd.karyawanId, DATE_FORMAT(pd.createdAt, '%Y-%m')
+          GROUP BY pd.karyawanId, YEAR(pd.createdAt), MONTH(pd.createdAt)
       ) t
         ON t.karyawanId = p.karyawanId
+       AND t.tahun = p.tahun
        AND t.bulan = p.bulan
 
-      /* JOIN KARYAWAN */
       JOIN karyawan k ON k.id = p.karyawanId
 
-      /* DEPARTEMEN KARYAWAN */
       LEFT JOIN _departemenonkaryawan dok ON dok.B = k.id
       LEFT JOIN departemen d ON d.id = dok.A
 
-      /* KPI INDIKATOR LAIN PER KARYAWAN PER BULAN */
+      /* INDIKATOR LAIN */
       LEFT JOIN (
           SELECT
               kp.karyawanId,
-              DATE_FORMAT(kd.createdAt, '%Y-%m') AS bulan,
-              SUM(ki.bobot) AS totalBobotLain,
-              SUM(ki.bobot * COALESCE(kd.score,0)) AS totalScoreLain
+              YEAR(kd.createdAt) AS tahun,
+              MONTH(kd.createdAt) AS bulan,
+              
+              SUM(ki.bobot) AS totalBobotIndikatorLain,
+              SUM(kd.score) AS totalScoreIndikatorLain,
+              AVG(kd.score) AS kpiIndikatorLain
+
           FROM kpidetail kd
-          JOIN kpi kp ON kp.id = kd.kpiId              -- menghubungkan ke karyawan
+          JOIN kpi kp ON kp.id = kd.kpiId
           JOIN kpiindicator ki ON ki.id = kd.indikatorId
           WHERE ki.nama NOT IN ('presensi','pelatihan')
-          GROUP BY kp.karyawanId, DATE_FORMAT(kd.createdAt, '%Y-%m')
+          GROUP BY kp.karyawanId, YEAR(kd.createdAt), MONTH(kd.createdAt)
       ) kpLain
         ON kpLain.karyawanId = p.karyawanId
+       AND kpLain.tahun = p.tahun
        AND kpLain.bulan = p.bulan
-
+       
       ${whereClause}
-
-      ORDER BY p.bulan DESC, k.nama;
+      ORDER BY p.tahun DESC, p.bulan DESC, kpiFinal DESC
     `;
 
     // Jalankan query
