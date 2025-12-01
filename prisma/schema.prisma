@@ -99,6 +99,8 @@ model kpiDetail {
   target       Float
   realisasi    Float?
   score        Float?   // (realisasi/target) * bobot * 100
+  periodeYear  Int?     // Tahun periode KPI (bisa dimanipulasi terpisah dari createdAt)
+  periodeMonth Int?     // Bulan periode KPI (1-12)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -107,6 +109,7 @@ model kpiDetail {
 
   @@index([kpiId], map: "KpiDetail_kpiId_idx")
   @@index([indikatorId], map: "KpiDetail_indikatorId_idx")
+  @@index([periodeYear, periodeMonth], map: "KpiDetail_periode_idx")
 }
 
 model modelversion {
@@ -137,6 +140,8 @@ model pelatihandetail {
   karyawanId  String
   skor        Float?
   catatan     String?
+  periodeYear  Int?     // Tahun periode pelatihan (bisa dimanipulasi terpisah dari createdAt)
+  periodeMonth Int?     // Bulan periode pelatihan (1-12)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime
   karyawan    karyawan  @relation(fields: [karyawanId], references: [id], map: "PelatihanDetail_karyawanId_fkey")
@@ -144,6 +149,7 @@ model pelatihandetail {
 
   @@unique([pelatihanId, karyawanId], map: "PelatihanDetail_pelatihanId_karyawanId_key")
   @@index([karyawanId], map: "PelatihanDetail_karyawanId_fkey")
+  @@index([periodeYear, periodeMonth], map: "PelatihanDetail_periode_idx")
 }
 
 model penghargaan {

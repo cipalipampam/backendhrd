@@ -356,7 +356,7 @@ router.get("/kpi/:id", allowRoles(ROLES.HR), async (req, res) => {
 // Create new KPI with details
 router.post("/kpi", allowRoles(ROLES.HR), async (req, res) => {
   try {
-    const { karyawanId, year, kpiDetails } = req.body;
+    const { karyawanId, year, kpiDetails, periodeYear, periodeMonth } = req.body;
 
     // Validation
     if (!karyawanId || !year) {
@@ -434,7 +434,9 @@ router.post("/kpi", allowRoles(ROLES.HR), async (req, res) => {
           indikatorId,
           target,
           realisasi: realisasi || null,
-          score
+          score,
+          periodeYear: detail.periodeYear || periodeYear || null,
+          periodeMonth: detail.periodeMonth || periodeMonth || null
         });
       }
     }
@@ -501,7 +503,7 @@ router.post("/kpi", allowRoles(ROLES.HR), async (req, res) => {
 router.put("/kpi/:id", allowRoles(ROLES.HR), async (req, res) => {
   try {
     const { id } = req.params;
-    const { year, kpiDetails } = req.body;
+    const { year, kpiDetails, periodeYear, periodeMonth } = req.body;
 
     // Check if KPI exists
     const existingKPI = await prisma.kpi.findUnique({
@@ -578,7 +580,9 @@ router.put("/kpi/:id", allowRoles(ROLES.HR), async (req, res) => {
           indikatorId,
           target,
           realisasi: realisasi || null,
-          score
+          score,
+          periodeYear: detail.periodeYear || periodeYear || null,
+          periodeMonth: detail.periodeMonth || periodeMonth || null
         });
       }
     }
@@ -699,7 +703,7 @@ router.delete("/kpi/:id", allowRoles(ROLES.HR), async (req, res) => {
 router.post("/kpi/:kpiId/details", allowRoles(ROLES.HR), async (req, res) => {
   try {
     const { kpiId } = req.params;
-    const { indikatorId, target, realisasi } = req.body;
+    const { indikatorId, target, realisasi, periodeYear, periodeMonth } = req.body;
 
     // Validation
     if (!indikatorId || target === undefined) {
@@ -748,7 +752,9 @@ router.post("/kpi/:kpiId/details", allowRoles(ROLES.HR), async (req, res) => {
           indikatorId,
           target,
           realisasi: realisasi || null,
-          score
+          score,
+          periodeYear: periodeYear || null,
+          periodeMonth: periodeMonth || null
         },
         include: {
           indikator: true

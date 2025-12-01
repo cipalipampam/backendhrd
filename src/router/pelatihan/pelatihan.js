@@ -242,6 +242,8 @@ router.put('/:id/participant/:karyawanId/score', allowRoles(ROLES.HR), async (re
             });
         }
 
+        const { periodeYear, periodeMonth } = req.body;
+        
         const updated = await prisma.pelatihandetail.update({
             where: { 
                 pelatihanId_karyawanId: { 
@@ -251,7 +253,9 @@ router.put('/:id/participant/:karyawanId/score', allowRoles(ROLES.HR), async (re
             },
             data: {
                 skor,
-                ...(catatan && { catatan }),
+                catatan: catatan || null,
+                periodeYear: periodeYear !== undefined ? periodeYear : undefined,
+                periodeMonth: periodeMonth !== undefined ? periodeMonth : undefined,
                 updatedAt: new Date()
             },
             include: {
@@ -334,6 +338,7 @@ router.delete('/:id', allowRoles(ROLES.HR), async (req, res) => {
 router.post('/:id/join', async (req, res) => {
     try {
         const pelatihanId = req.params.id;
+        const { periodeYear, periodeMonth } = req.body;
         const user = req.user;
         if (!user) return res.status(401).json({ message: 'Unauthorized' });
 
@@ -355,6 +360,8 @@ router.post('/:id/join', async (req, res) => {
                 id: randomUUID(),
                 pelatihanId,
                 karyawanId: karyawan.id,
+                periodeYear: periodeYear || null,
+                periodeMonth: periodeMonth || null,
                 updatedAt: new Date()
             }
         });

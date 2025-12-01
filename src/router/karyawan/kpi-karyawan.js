@@ -33,13 +33,22 @@ router.get("/", allowRoles(ROLES.HR), async (req, res) => {
       });
     }
 
+    // Parse bulan filter jika ada
+    let filterYear = null;
+    let filterMonth = null;
+    if (bulan) {
+      const [year, month] = bulan.split('-').map(Number);
+      filterYear = year;
+      filterMonth = month;
+    }
+
     // Build filter conditions
     const whereConditions = [];
     const params = [];
 
     if (bulan) {
-      whereConditions.push("CONCAT(p.tahun, '-', LPAD(p.bulan, 2, '0')) = ?");
-      params.push(bulan);
+      whereConditions.push("p.tahun = ? AND p.bulan = ?");
+      params.push(filterYear, filterMonth);
     }
 
     if (karyawanId) {
@@ -117,11 +126,12 @@ router.get("/", allowRoles(ROLES.HR), async (req, res) => {
           /* PELATIHAN PER KARYAWAN PER BULAN */
           SELECT
               pd.karyawanId,
-              YEAR(pd.createdAt) AS tahun,
-              MONTH(pd.createdAt) AS bulan,
+              COALESCE(pd.periodeYear, YEAR(pd.createdAt)) AS tahun,
+              COALESCE(pd.periodeMonth, MONTH(pd.createdAt)) AS bulan,
               AVG(pd.skor) AS avgPelatihan
           FROM pelatihandetail pd
-          GROUP BY pd.karyawanId, YEAR(pd.createdAt), MONTH(pd.createdAt)
+          ${bulan ? `WHERE (pd.periodeYear = ? AND pd.periodeMonth = ?) OR (pd.periodeYear IS NULL AND YEAR(pd.createdAt) = ? AND MONTH(pd.createdAt) = ?)` : ''}
+          GROUP BY pd.karyawanId, COALESCE(pd.periodeYear, YEAR(pd.createdAt)), COALESCE(pd.periodeMonth, MONTH(pd.createdAt))
       ) t
         ON t.karyawanId = p.karyawanId
        AND t.tahun = p.tahun
@@ -136,8 +146,8 @@ router.get("/", allowRoles(ROLES.HR), async (req, res) => {
       LEFT JOIN (
           SELECT
               kp.karyawanId,
-              YEAR(kd.createdAt) AS tahun,
-              MONTH(kd.createdAt) AS bulan,
+              COALESCE(kd.periodeYear, YEAR(kd.createdAt)) AS tahun,
+              COALESCE(kd.periodeMonth, MONTH(kd.createdAt)) AS bulan,
               
               SUM(ki.bobot) AS totalBobotIndikatorLain,
               SUM(kd.score) AS totalScoreIndikatorLain,
@@ -147,7 +157,8 @@ router.get("/", allowRoles(ROLES.HR), async (req, res) => {
           JOIN kpi kp ON kp.id = kd.kpiId
           JOIN kpiindicator ki ON ki.id = kd.indikatorId
           WHERE ki.nama NOT IN ('presensi','pelatihan')
-          GROUP BY kp.karyawanId, YEAR(kd.createdAt), MONTH(kd.createdAt)
+              ${bulan ? `AND ((kd.periodeYear = ? AND kd.periodeMonth = ?) OR (kd.periodeYear IS NULL AND YEAR(kd.createdAt) = ? AND MONTH(kd.createdAt) = ?))` : ''}
+          GROUP BY kp.karyawanId, COALESCE(kd.periodeYear, YEAR(kd.createdAt)), COALESCE(kd.periodeMonth, MONTH(kd.createdAt))
       ) kpLain
         ON kpLain.karyawanId = p.karyawanId
        AND kpLain.tahun = p.tahun
@@ -157,8 +168,19 @@ router.get("/", allowRoles(ROLES.HR), async (req, res) => {
       ORDER BY p.tahun DESC, p.bulan DESC, kpiFinal DESC
     `;
 
+    // Tambahkan parameter untuk subquery jika ada filter bulan
+    const allParams = [];
+    if (bulan) {
+      // Untuk subquery pelatihan: 4 params (periodeYear, periodeMonth, YEAR, MONTH)
+      allParams.push(filterYear, filterMonth, filterYear, filterMonth);
+      // Untuk subquery kpiLain: 4 params (periodeYear, periodeMonth, YEAR, MONTH)
+      allParams.push(filterYear, filterMonth, filterYear, filterMonth);
+    }
+    // Tambahkan params untuk WHERE clause utama
+    allParams.push(...params);
+
     // Jalankan query
-    const results = await prisma.$queryRawUnsafe(query, ...params);
+    const results = await prisma.$queryRawUnsafe(query, ...allParams);
 
     // Konversi BigInt
     const clean = convertBigInt(results);

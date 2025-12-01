@@ -432,7 +432,7 @@ async function main() {
   // -------------------- KPI Data with Details (Simplified) --------------------
 
   // Helper untuk create KPI dengan details
-  const createKPIWithDetails = async (karyawanId, year, score, indicators, details) => {
+  const createKPIWithDetails = async (karyawanId, year, score, indicators, details, periodeYear = null, periodeMonth = null) => {
     const kpi = await prisma.kpi.upsert({
       where: {
         karyawanId_year: { karyawanId, year },
@@ -455,6 +455,8 @@ async function main() {
         target: detail.target,
         realisasi: detail.realisasi,
         score: (detail.realisasi / detail.target) * indicators[detail.indikatorIndex].bobot * 100,
+        periodeYear: detail.periodeYear || periodeYear,
+        periodeMonth: detail.periodeMonth || periodeMonth,
       })),
     });
   };
@@ -464,39 +466,39 @@ async function main() {
   await createKPIWithDetails(createdKaryawan[0].id, 2023, 88.0, sarahHRIndicators, [
     { indikatorIndex: 0, target: 92, realisasi: 91 },
     { indikatorIndex: 1, target: 95, realisasi: 94 },
-  ]);
+  ], 2023, 10); // Oktober 2023
   await createKPIWithDetails(createdKaryawan[0].id, 2024, 92.5, sarahHRIndicators, [
     { indikatorIndex: 0, target: 93, realisasi: 95 },
     { indikatorIndex: 1, target: 96, realisasi: 97 },
-  ]);
+  ], 2024, 11); // November 2024
 
   // Michael Chen (HR Specialist) - 2024
   await createKPIWithDetails(createdKaryawan[1].id, 2024, 85.0, sarahHRIndicators, [
     { indikatorIndex: 0, target: 90, realisasi: 87 },
     { indikatorIndex: 1, target: 92, realisasi: 90 },
-  ]);
+  ], 2024, 11); // November 2024
 
   // John Developer (Software Engineer) - 2023, 2024
   const johnTechIndicators = getIndicatorsByDepartment("Technology");
   await createKPIWithDetails(createdKaryawan[2].id, 2023, 85.0, johnTechIndicators, [
     { indikatorIndex: 0, target: 92, realisasi: 90 },
     { indikatorIndex: 1, target: 88, realisasi: 86 },
-  ]);
+  ], 2023, 9); // September 2023
   await createKPIWithDetails(createdKaryawan[2].id, 2024, 88.5, johnTechIndicators, [
     { indikatorIndex: 0, target: 93, realisasi: 92 },
     { indikatorIndex: 1, target: 90, realisasi: 91 },
-  ]);
+  ], 2024, 11); // November 2024
 
   // Jane Smith (Sales) - 2023, 2024
   const janeSalesIndicators = getIndicatorsByDepartment("Sales & Marketing");
   await createKPIWithDetails(createdKaryawan[3].id, 2023, 90.0, janeSalesIndicators, [
     { indikatorIndex: 0, target: 100, realisasi: 105 },
     { indikatorIndex: 1, target: 85, realisasi: 82 },
-  ]);
+  ], 2023, 11); // November 2023
   await createKPIWithDetails(createdKaryawan[3].id, 2024, 93.5, janeSalesIndicators, [
     { indikatorIndex: 0, target: 110, realisasi: 118 },
     { indikatorIndex: 1, target: 87, realisasi: 88 },
-  ]);
+  ], 2024, 11); // November 2024
 
   // David Wilson (Junior Dev) - 2024
   await createKPIWithDetails(createdKaryawan[4].id, 2024, 78.0, johnTechIndicators, [
@@ -658,6 +660,11 @@ async function main() {
     });
 
     for (const peserta of pelatihan.peserta) {
+      // Set periode berdasarkan tanggal pelatihan
+      const pelatihanDate = new Date(pelatihan.tanggal);
+      const periodeYear = pelatihanDate.getFullYear();
+      const periodeMonth = pelatihanDate.getMonth() + 1;
+
       await prisma.pelatihandetail.create({
         data: {
           id: randomUUID(),
@@ -665,6 +672,8 @@ async function main() {
           karyawanId: peserta.karyawanId,
           skor: peserta.skor,
           catatan: peserta.catatan,
+          periodeYear: periodeYear,
+          periodeMonth: periodeMonth,
           updatedAt: new Date(),
         },
       });
