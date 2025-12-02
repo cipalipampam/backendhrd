@@ -6,6 +6,18 @@ import { randomUUID } from "crypto";
 
 const router = Router();
 
+// Lightweight helper shared by create/update handlers
+const parseOptionalInt = (value, label) => {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed)) {
+    throw new Error(`Field '${label}' must be a valid number`);
+  }
+  return parsed;
+};
+
 // ==================== KPI INDICATORS ENDPOINTS ====================
 
 // Get all KPI Indicators
@@ -356,14 +368,40 @@ router.get("/kpi/:id", allowRoles(ROLES.HR), async (req, res) => {
 // Create new KPI with details
 router.post("/kpi", allowRoles(ROLES.HR), async (req, res) => {
   try {
-    const { karyawanId, year, kpiDetails, periodeYear, periodeMonth } = req.body;
+    const { karyawanId, kpiDetails, periodeYear, periodeMonth } = req.body;
 
     // Validation
-    if (!karyawanId || !year) {
+    if (!karyawanId) {
       return res.status(400).json({
         status: 400,
-        message: "Fields 'karyawanId' and 'year' are required"
+        message: "Field 'karyawanId' is required"
       });
+    }
+
+    let parsedYear;
+    try {
+      parsedYear = parseOptionalInt(periodeYear, "periodeYear");
+      if (parsedYear === null && Array.isArray(kpiDetails)) {
+        for (let i = 0; i < kpiDetails.length; i += 1) {
+          const candidate = parseOptionalInt(
+            kpiDetails[i]?.periodeYear,
+            `kpiDetails[${i}].periodeYear`
+          );
+          if (candidate !== null) {
+            parsedYear = candidate;
+            break;
+          }
+        }
+      }
+    } catch (parseError) {
+      return res.status(400).json({
+        status: 400,
+        message: parseError.message
+      });
+    }
+
+    if (parsedYear === null) {
+      parsedYear = new Date().getFullYear();
     }
 
     // Check if karyawan exists
@@ -378,30 +416,31 @@ router.post("/kpi", allowRoles(ROLES.HR), async (req, res) => {
       });
     }
 
-    // Check if KPI already exists for this karyawan and year
-    const existingKPI = await prisma.kpi.findUnique({
-      where: {
-        karyawanId_year: {
-          karyawanId,
-          year: parseInt(year)
-        }
-      }
-    });
-
-    if (existingKPI) {
-      return res.status(400).json({
-        status: 400,
-        message: "KPI already exists for this karyawan and year"
-      });
-    }
-
     // Validate and calculate KPI score from details
     let totalScore = 0;
     const validatedDetails = [];
+    const combinationSet = new Set();
 
     if (kpiDetails && Array.isArray(kpiDetails)) {
-      for (const detail of kpiDetails) {
+      for (let index = 0; index < kpiDetails.length; index += 1) {
+        const detail = kpiDetails[index];
         const { indikatorId, target, realisasi } = detail;
+
+        let detailPeriodeYear;
+        let detailPeriodeMonth;
+        try {
+          detailPeriodeYear =
+            parseOptionalInt(detail.periodeYear, `kpiDetails[${index}].periodeYear`) ?? parsedYear;
+          detailPeriodeMonth = parseOptionalInt(
+            detail.periodeMonth ?? periodeMonth,
+            `kpiDetails[${index}].periodeMonth`
+          );
+        } catch (parseError) {
+          return res.status(400).json({
+            status: 400,
+            message: parseError.message
+          });
+        }
 
         if (!indikatorId || target === undefined) {
           return res.status(400).json({
@@ -422,6 +461,35 @@ router.post("/kpi", allowRoles(ROLES.HR), async (req, res) => {
           });
         }
 
+        // Prevent duplicate KPI detail combination (karyawan + indikator + periode)
+        const combinationKey = `${karyawanId}-${indikatorId}-${detailPeriodeYear ?? "null"}-${detailPeriodeMonth ?? "null"}`;
+        if (combinationSet.has(combinationKey)) {
+          return res.status(400).json({
+            status: 400,
+            message: "Duplicate KPI detail combination within request body"
+          });
+        }
+
+        const conflictDetail = await prisma.kpiDetail.findFirst({
+          where: {
+            indikatorId,
+            periodeYear: detailPeriodeYear,
+            periodeMonth: detailPeriodeMonth,
+            kpi: {
+              karyawanId
+            }
+          }
+        });
+
+        if (conflictDetail) {
+          return res.status(400).json({
+            status: 400,
+            message: "KPI detail already exists for this karyawan with the same indikator, month, and year"
+          });
+        }
+
+        combinationSet.add(combinationKey);
+
         // Calculate score if realisasi is provided
         let score = null;
         if (realisasi !== undefined && realisasi !== null) {
@@ -435,8 +503,8 @@ router.post("/kpi", allowRoles(ROLES.HR), async (req, res) => {
           target,
           realisasi: realisasi || null,
           score,
-          periodeYear: detail.periodeYear || periodeYear || null,
-          periodeMonth: detail.periodeMonth || periodeMonth || null
+          periodeYear: detailPeriodeYear,
+          periodeMonth: detailPeriodeMonth
         });
       }
     }
@@ -447,7 +515,7 @@ router.post("/kpi", allowRoles(ROLES.HR), async (req, res) => {
         data: {
           id: randomUUID(),
           karyawanId,
-          year: parseInt(year),
+          year: parsedYear,
           score: totalScore
         }
       });
@@ -520,34 +588,51 @@ router.put("/kpi/:id", allowRoles(ROLES.HR), async (req, res) => {
       });
     }
 
-    // If year is being updated, check for conflicts
-    if (year && year !== existingKPI.year) {
-      const conflictKPI = await prisma.kpi.findUnique({
-        where: {
-          karyawanId_year: {
-            karyawanId: existingKPI.karyawanId,
-            year: parseInt(year)
-          }
+    // Determine target year (fallback to existing year)
+    let targetYear = existingKPI.year;
+    if (year !== undefined) {
+      try {
+        const parsedYear = parseOptionalInt(year, "year");
+        if (parsedYear !== null) {
+          targetYear = parsedYear;
         }
-      });
-
-      if (conflictKPI) {
+      } catch (parseError) {
         return res.status(400).json({
           status: 400,
-          message: "KPI already exists for this karyawan and year"
+          message: parseError.message
         });
       }
     }
 
-    // Calculate new total score if kpiDetails provided
     let totalScore = existingKPI.score;
     const updatedDetails = [];
+    const combinationSet = new Set();
 
     if (kpiDetails && Array.isArray(kpiDetails)) {
       totalScore = 0;
-      
-      for (const detail of kpiDetails) {
+
+      for (let index = 0; index < kpiDetails.length; index += 1) {
+        const detail = kpiDetails[index];
         const { id: detailId, indikatorId, target, realisasi } = detail;
+
+        let detailPeriodeYear;
+        let detailPeriodeMonth;
+        try {
+          detailPeriodeYear =
+            parseOptionalInt(
+              detail.periodeYear ?? periodeYear,
+              `kpiDetails[${index}].periodeYear`
+            ) ?? targetYear;
+          detailPeriodeMonth = parseOptionalInt(
+            detail.periodeMonth ?? periodeMonth,
+            `kpiDetails[${index}].periodeMonth`
+          );
+        } catch (parseError) {
+          return res.status(400).json({
+            status: 400,
+            message: parseError.message
+          });
+        }
 
         if (!indikatorId || target === undefined) {
           return res.status(400).json({
@@ -556,7 +641,6 @@ router.put("/kpi/:id", allowRoles(ROLES.HR), async (req, res) => {
           });
         }
 
-        // Check if indicator exists
         const indicator = await prisma.kpiIndicator.findUnique({
           where: { id: indikatorId }
         });
@@ -568,7 +652,35 @@ router.put("/kpi/:id", allowRoles(ROLES.HR), async (req, res) => {
           });
         }
 
-        // Calculate score
+        const combinationKey = `${existingKPI.karyawanId}-${indikatorId}-${detailPeriodeYear ?? "null"}-${detailPeriodeMonth ?? "null"}`;
+        if (combinationSet.has(combinationKey)) {
+          return res.status(400).json({
+            status: 400,
+            message: "Duplicate KPI detail combination within request body"
+          });
+        }
+
+        const conflictDetail = await prisma.kpiDetail.findFirst({
+          where: {
+            indikatorId,
+            periodeYear: detailPeriodeYear ?? null,
+            periodeMonth: detailPeriodeMonth ?? null,
+            kpi: {
+              karyawanId: existingKPI.karyawanId
+            },
+            NOT: detailId ? { id: detailId } : undefined
+          }
+        });
+
+        if (conflictDetail) {
+          return res.status(400).json({
+            status: 400,
+            message: "KPI detail already exists for this karyawan, indikator, periode year, and periode month"
+          });
+        }
+
+        combinationSet.add(combinationKey);
+
         let score = null;
         if (realisasi !== undefined && realisasi !== null) {
           score = (realisasi / target) * indicator.bobot * 100;
@@ -581,43 +693,38 @@ router.put("/kpi/:id", allowRoles(ROLES.HR), async (req, res) => {
           target,
           realisasi: realisasi || null,
           score,
-          periodeYear: detail.periodeYear || periodeYear || null,
-          periodeMonth: detail.periodeMonth || periodeMonth || null
+          periodeYear: detailPeriodeYear ?? null,
+          periodeMonth: detailPeriodeMonth ?? null
         });
       }
     }
 
-    // Update KPI with details in a transaction
     const kpi = await prisma.$transaction(async (tx) => {
-      // Update KPI
-      const updateData = {
-        score: totalScore
-      };
-      if (year !== undefined) updateData.year = parseInt(year);
-
       const updatedKPI = await tx.kpi.update({
         where: { id },
-        data: updateData
+        data: {
+          year: targetYear,
+          score: totalScore
+        }
       });
 
-      // Update details if provided
-      if (updatedDetails.length > 0) {
-        // Delete existing details
+      if (Array.isArray(kpiDetails)) {
         await tx.kpiDetail.deleteMany({
           where: { kpiId: id }
         });
 
-        // Create new details
-        await tx.kpiDetail.createMany({
-          data: updatedDetails.map(detail => ({
-            ...detail,
-            kpiId: id
-          }))
-        });
+        if (updatedDetails.length > 0) {
+          await tx.kpiDetail.createMany({
+            data: updatedDetails.map((detail) => ({
+              ...detail,
+              kpiId: id
+            }))
+          });
+        }
       }
 
       return tx.kpi.findUnique({
-        where: { id },
+        where: { id: updatedKPI.id },
         include: {
           karyawan: {
             select: {
@@ -791,10 +898,10 @@ router.post("/kpi/:kpiId/details", allowRoles(ROLES.HR), async (req, res) => {
 });
 
 // Update KPI Detail
-router.put("/kpi/details/:detailId", allowRoles(ROLES.HR), async (req, res) => {
+router.put("/details/:detailId", allowRoles(ROLES.HR), async (req, res) => {
   try {
     const { detailId } = req.params;
-    const { target, realisasi } = req.body;
+    const { target, realisasi, periodeYear, periodeMonth } = req.body;
 
     // Check if detail exists
     const existingDetail = await prisma.kpiDetail.findUnique({
@@ -814,6 +921,8 @@ router.put("/kpi/details/:detailId", allowRoles(ROLES.HR), async (req, res) => {
     // Calculate new score
     const newTarget = target !== undefined ? target : existingDetail.target;
     const newRealisasi = realisasi !== undefined ? realisasi : existingDetail.realisasi;
+    const newPeriodeYear = periodeYear !== undefined ? periodeYear : existingDetail.periodeYear;
+    const newPeriodeMonth = periodeMonth !== undefined ? periodeMonth : existingDetail.periodeMonth;
     
     let score = null;
     if (newRealisasi !== null) {
@@ -827,7 +936,9 @@ router.put("/kpi/details/:detailId", allowRoles(ROLES.HR), async (req, res) => {
         data: {
           target: newTarget,
           realisasi: newRealisasi,
-          score
+          score,
+          periodeYear: newPeriodeYear,
+          periodeMonth: newPeriodeMonth
         },
         include: {
           indikator: true
@@ -864,7 +975,7 @@ router.put("/kpi/details/:detailId", allowRoles(ROLES.HR), async (req, res) => {
 });
 
 // Delete KPI Detail
-router.delete("/kpi/details/:detailId", allowRoles(ROLES.HR), async (req, res) => {
+router.delete("/details/:detailId", allowRoles(ROLES.HR), async (req, res) => {
   try {
     const { detailId } = req.params;
 

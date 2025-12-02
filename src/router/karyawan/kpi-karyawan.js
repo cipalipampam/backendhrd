@@ -70,102 +70,113 @@ router.get("/", allowRoles(ROLES.HR), async (req, res) => {
     // ================================
     const query = `
       SELECT
-          k.id AS karyawanId,
-          k.nama AS namaKaryawan,
-          d.id AS departemenId,
-          d.nama AS departemen,
-          p.tahun,
-          LPAD(p.bulan, 2, '0') AS bulan,
-          
-          -- PRESENSI & PELATIHAN
-          p.scorePresensi,
-          COALESCE(t.avgPelatihan, 0) AS scorePelatihan,
-          60 AS bobotPresensi,
-          40 AS bobotPelatihan,
-          
-          -- TOTAL BOBOT DAN TOTAL SCORE
-          COALESCE(kpLain.totalBobotIndikatorLain, 0) AS totalBobotIndikatorLain,
-          COALESCE(kpLain.totalScoreIndikatorLain, 0) AS totalScoreIndikatorLain,
-          
-          -- KPI FINAL
-          CASE
-              WHEN kpLain.kpiIndikatorLain IS NULL
-                  THEN (
-                      (p.scorePresensi * 60 + COALESCE(t.avgPelatihan, 0) * 40) / 100
-                  )
-              ELSE (
-                  (
-                      (p.scorePresensi * 60 + COALESCE(t.avgPelatihan, 0) * 40) / 100
-                  )
-                  + kpLain.kpiIndikatorLain
-              ) / 2
-          END AS kpiFinal
+    k.id AS karyawanId,
+    k.nama AS namaKaryawan,
+    d.id AS departemenId,
+    d.nama AS departemen,
 
-      FROM (
-          /* PRESENSI PER KARYAWAN PER BULAN */
-          SELECT 
-              kh.karyawanId,
-              YEAR(kh.tanggal) AS tahun,
-              MONTH(kh.tanggal) AS bulan,
-              (
-                  SUM(
-                      CASE 
-                          WHEN kh.status = 'HADIR' THEN 100
-                          WHEN kh.status IN ('IZIN','SAKIT') THEN 80
-                          WHEN kh.status = 'TERLAMBAT' THEN 70
-                          WHEN kh.status = 'ALPA' THEN 0
-                          ELSE 0
-                      END
-                  ) / COUNT(*)
-              ) AS scorePresensi
-          FROM kehadiran kh
-          GROUP BY kh.karyawanId, YEAR(kh.tanggal), MONTH(kh.tanggal)
-      ) p
+    kplain.periodeYear AS tahun,
+    LPAD(kplain.periodeMonth, 2, '0') AS bulan,
 
-      LEFT JOIN (
-          /* PELATIHAN PER KARYAWAN PER BULAN */
-          SELECT
-              pd.karyawanId,
-              COALESCE(pd.periodeYear, YEAR(pd.createdAt)) AS tahun,
-              COALESCE(pd.periodeMonth, MONTH(pd.createdAt)) AS bulan,
-              AVG(pd.skor) AS avgPelatihan
-          FROM pelatihandetail pd
-          ${bulan ? `WHERE (pd.periodeYear = ? AND pd.periodeMonth = ?) OR (pd.periodeYear IS NULL AND YEAR(pd.createdAt) = ? AND MONTH(pd.createdAt) = ?)` : ''}
-          GROUP BY pd.karyawanId, COALESCE(pd.periodeYear, YEAR(pd.createdAt)), COALESCE(pd.periodeMonth, MONTH(pd.createdAt))
-      ) t
-        ON t.karyawanId = p.karyawanId
-       AND t.tahun = p.tahun
-       AND t.bulan = p.bulan
+    COALESCE(p.scorePresensi, 0) AS scorePresensi,
+    COALESCE(t.avgPelatihan, 0) AS scorePelatihan,
 
-      JOIN karyawan k ON k.id = p.karyawanId
+    60 AS bobotPresensi,
+    40 AS bobotPelatihan,
 
-      LEFT JOIN _departemenonkaryawan dok ON dok.B = k.id
-      LEFT JOIN departemen d ON d.id = dok.A
+    kplain.totalBobotIndikatorLain,
+    kplain.totalScoreIndikatorLain,
+    kplain.kpiIndikatorLain,
 
-      /* INDIKATOR LAIN */
-      LEFT JOIN (
-          SELECT
-              kp.karyawanId,
-              COALESCE(kd.periodeYear, YEAR(kd.createdAt)) AS tahun,
-              COALESCE(kd.periodeMonth, MONTH(kd.createdAt)) AS bulan,
-              
-              SUM(ki.bobot) AS totalBobotIndikatorLain,
-              SUM(kd.score) AS totalScoreIndikatorLain,
-              AVG(kd.score) AS kpiIndikatorLain
+    -- ======================================================
+    -- RUMUS RESMI KPI FINAL
+    -- ======================================================
+    LEAST(100, GREATEST(0,
 
-          FROM kpidetail kd
-          JOIN kpi kp ON kp.id = kd.kpiId
-          JOIN kpiindicator ki ON ki.id = kd.indikatorId
-          WHERE ki.nama NOT IN ('presensi','pelatihan')
-              ${bulan ? `AND ((kd.periodeYear = ? AND kd.periodeMonth = ?) OR (kd.periodeYear IS NULL AND YEAR(kd.createdAt) = ? AND MONTH(kd.createdAt) = ?))` : ''}
-          GROUP BY kp.karyawanId, COALESCE(kd.periodeYear, YEAR(kd.createdAt)), COALESCE(kd.periodeMonth, MONTH(kd.createdAt))
-      ) kpLain
-        ON kpLain.karyawanId = p.karyawanId
-       AND kpLain.tahun = p.tahun
-       AND kpLain.bulan = p.bulan
-       
-      ${whereClause}
-      ORDER BY p.tahun DESC, p.bulan DESC, kpiFinal DESC
+        CASE 
+            -- m = 0 → KPI_final = KPI_inti
+            WHEN kplain.kpiIndikatorLain IS NULL THEN
+                (
+                    (COALESCE(p.scorePresensi, 0) * 60) +
+                    (COALESCE(t.avgPelatihan, 0) * 40)
+                ) / 100
+
+            -- m > 0 → kombinasi bobot (default 0.5 / 0.5)
+            ELSE
+                (
+                    0.5 * (
+                        (COALESCE(p.scorePresensi, 0) * 60) +
+                        (COALESCE(t.avgPelatihan, 0) * 40)
+                    ) / 100
+                )
+                +
+                (
+                    0.5 * kplain.kpiIndikatorLain
+                )
+        END
+
+    )) AS kpiFinal
+    -- ======================================================
+
+FROM 
+(
+    -- KPI DETAIL (PERIODE UTAMA)
+    SELECT
+        kp.karyawanId,
+        kd.periodeYear,
+        kd.periodeMonth,
+        SUM(ki.bobot) AS totalBobotIndikatorLain,
+        SUM(kd.score) AS totalScoreIndikatorLain,
+        AVG(kd.score) AS kpiIndikatorLain  -- KPI_lain = rata-rata skor mentah 
+    FROM kpidetail kd
+    JOIN kpi kp ON kp.id = kd.kpiId
+    JOIN kpiindicator ki ON ki.id = kd.indikatorId
+    WHERE ki.nama NOT IN ('presensi', 'pelatihan')
+    GROUP BY kp.karyawanId, kd.periodeYear, kd.periodeMonth
+) kplain
+
+JOIN karyawan k 
+    ON k.id = kplain.karyawanId
+LEFT JOIN _departemenonkaryawan dok 
+    ON dok.B = k.id
+LEFT JOIN departemen d 
+    ON d.id = dok.A
+
+LEFT JOIN 
+(
+    SELECT
+        kh.karyawanId,
+        YEAR(kh.tanggal) AS periodeYear,
+        MONTH(kh.tanggal) AS periodeMonth,
+        SUM(
+            CASE 
+                WHEN kh.status = 'HADIR' THEN 100
+                WHEN kh.status IN ('IZIN','SAKIT') THEN 80
+                WHEN kh.status = 'TERLAMBAT' THEN 70
+                WHEN kh.status = 'ALPA' THEN 0
+                ELSE 0
+            END
+        ) / COUNT(*) AS scorePresensi
+    FROM kehadiran kh
+    GROUP BY kh.karyawanId, YEAR(kh.tanggal), MONTH(kh.tanggal)
+) p
+    ON p.karyawanId = kplain.karyawanId
+   AND p.periodeYear = kplain.periodeYear
+   AND p.periodeMonth = kplain.periodeMonth
+
+LEFT JOIN
+(
+    SELECT
+        pd.karyawanId,
+        pd.periodeYear,
+        pd.periodeMonth,
+        AVG(pd.skor) AS avgPelatihan
+    FROM pelatihandetail pd
+    GROUP BY pd.karyawanId, pd.periodeYear, pd.periodeMonth
+) t
+    ON t.karyawanId = kplain.karyawanId
+   AND t.periodeYear = kplain.periodeYear
+   AND t.periodeMonth = kplain.periodeMonth;
     `;
 
     // Tambahkan parameter untuk subquery jika ada filter bulan

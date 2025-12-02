@@ -76,8 +76,6 @@ model kpi {
   karyawan   karyawan     @relation(fields: [karyawanId], references: [id], map: "KPI_karyawanId_fkey")
 
   kpiDetails kpiDetail[]  @relation("kpi_kpiDetail")
-
-  @@unique([karyawanId, year], map: "KPI_karyawanId_year_key")
 }
 
 model kpiIndicator {

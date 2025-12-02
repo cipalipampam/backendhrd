@@ -432,29 +432,53 @@ async function main() {
   // -------------------- KPI Data with Details (Simplified) --------------------
 
   // Helper untuk create KPI dengan details
-  const createKPIWithDetails = async (karyawanId, year, score, indicators, details, periodeYear = null, periodeMonth = null) => {
-    const kpi = await prisma.kpi.upsert({
+  const createKPIWithDetails = async (
+    karyawanId,
+    year,
+    score,
+    indicators,
+    details,
+    periodeYear = null,
+    periodeMonth = null
+  ) => {
+    // Without the DB-level unique constraint we manually ensure a single seed per karyawan/year
+    let kpi = await prisma.kpi.findFirst({
       where: {
-        karyawanId_year: { karyawanId, year },
-      },
-      update: {},
-      create: {
-        id: randomUUID(),
         karyawanId,
         year,
-        score,
-        updatedAt: new Date(),
       },
     });
 
+    if (kpi) {
+      // refresh score and clean up previous details to keep seed idempotent
+      kpi = await prisma.kpi.update({
+        where: { id: kpi.id },
+        data: { score, updatedAt: new Date() },
+      });
+      await prisma.kpiDetail.deleteMany({ where: { kpiId: kpi.id } });
+    } else {
+      kpi = await prisma.kpi.create({
+        data: {
+          id: randomUUID(),
+          karyawanId,
+          year,
+          score,
+          updatedAt: new Date(),
+        },
+      });
+    }
+
     await prisma.kpiDetail.createMany({
-      data: details.map(detail => ({
+      data: details.map((detail) => ({
         id: randomUUID(),
         kpiId: kpi.id,
         indikatorId: indicators[detail.indikatorIndex].id,
         target: detail.target,
         realisasi: detail.realisasi,
-        score: (detail.realisasi / detail.target) * indicators[detail.indikatorIndex].bobot * 100,
+        score:
+          (detail.realisasi / detail.target) *
+          indicators[detail.indikatorIndex].bobot *
+          100,
         periodeYear: detail.periodeYear || periodeYear,
         periodeMonth: detail.periodeMonth || periodeMonth,
       })),
