@@ -1,0 +1,830 @@
+﻿import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
+import { randomUUID } from "crypto";
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log("ðŸŒ± Starting database seeding...");
+
+  // -------------------- Departemen (hanya 3) --------------------
+  const departemenNames = [
+    "Technology",
+    "Sales & Marketing",
+    "HR",
+    "Operations",
+    "Analytics",
+    "R&D",
+    "Procurement",
+    "Finance",
+  ];
+
+  const createdDepartemen = [];
+  for (const nama of departemenNames) {
+    const dept = await prisma.departemen.upsert({
+      where: { nama },
+      update: {},
+      create: {
+        id: randomUUID(),
+        nama,
+        updatedAt: new Date(),
+      },
+    });
+    createdDepartemen.push(dept);
+  }
+  console.log("âœ… Departemen created");
+
+  // -------------------- Jabatan (per Departemen) --------------------
+  const jabatanData = [
+    // Technology Department
+    { nama: "Junior Developer", level: "Junior", departemen: "Technology" },
+    { nama: "Software Engineer", level: "Staff", departemen: "Technology" },
+    { nama: "Senior Software Engineer", level: "Senior", departemen: "Technology" },
+    { nama: "Tech Lead", level: "Lead", departemen: "Technology" },
+    { nama: "Engineering Manager", level: "Manager", departemen: "Technology" },
+    { nama: "DevOps Engineer", level: "Staff", departemen: "Technology" },
+    { nama: "QA Engineer", level: "Staff", departemen: "Technology" },
+    { nama: "System Administrator", level: "Staff", departemen: "Technology" },
+    { nama: "Full Stack Developer", level: "Senior", departemen: "Technology" },
+
+    // Sales & Marketing Department
+    { nama: "Sales Representative", level: "Junior", departemen: "Sales & Marketing" },
+    { nama: "Account Executive", level: "Staff", departemen: "Sales & Marketing" },
+    { nama: "Senior Account Manager", level: "Senior", departemen: "Sales & Marketing" },
+    { nama: "Sales Manager", level: "Manager", departemen: "Sales & Marketing" },
+    { nama: "Marketing Specialist", level: "Staff", departemen: "Sales & Marketing" },
+    { nama: "Digital Marketing Manager", level: "Manager", departemen: "Sales & Marketing" },
+    { nama: "Brand Manager", level: "Senior", departemen: "Sales & Marketing" },
+
+    // HR Department
+    { nama: "HR Assistant", level: "Junior", departemen: "HR" },
+    { nama: "Recruitment Specialist", level: "Staff", departemen: "HR" },
+    { nama: "Training Coordinator", level: "Staff", departemen: "HR" },
+    { nama: "HR Business Partner", level: "Senior", departemen: "HR" },
+    { nama: "HR Manager", level: "Manager", departemen: "HR" },
+    { nama: "Employee Relations Specialist", level: "Staff", departemen: "HR" },
+
+    // Operations Department
+    { nama: "Operations Assistant", level: "Junior", departemen: "Operations" },
+    { nama: "Process Coordinator", level: "Staff", departemen: "Operations" },
+    { nama: "Quality Analyst", level: "Staff", departemen: "Operations" },
+    { nama: "Operations Manager", level: "Manager", departemen: "Operations" },
+    { nama: "Supply Chain Coordinator", level: "Staff", departemen: "Operations" },
+
+    // Analytics Department
+    { nama: "Data Analyst", level: "Staff", departemen: "Analytics" },
+    { nama: "Business Intelligence Specialist", level: "Staff", departemen: "Analytics" },
+    { nama: "Data Scientist", level: "Senior", departemen: "Analytics" },
+    { nama: "Analytics Manager", level: "Manager", departemen: "Analytics" },
+    { nama: "Statistician", level: "Staff", departemen: "Analytics" },
+
+    // R&D Department
+    { nama: "Research Assistant", level: "Junior", departemen: "R&D" },
+    { nama: "Product Developer", level: "Staff", departemen: "R&D" },
+    { nama: "Research Scientist", level: "Senior", departemen: "R&D" },
+    { nama: "Research Manager", level: "Manager", departemen: "R&D" },
+    { nama: "Innovation Specialist", level: "Staff", departemen: "R&D" },
+    { nama: "Lab Technician", level: "Staff", departemen: "R&D" },
+
+    // Procurement Department
+    { nama: "Procurement Assistant", level: "Junior", departemen: "Procurement" },
+    { nama: "Sourcing Specialist", level: "Staff", departemen: "Procurement" },
+    { nama: "Vendor Relations Manager", level: "Senior", departemen: "Procurement" },
+    { nama: "Procurement Manager", level: "Manager", departemen: "Procurement" },
+    { nama: "Contract Specialist", level: "Staff", departemen: "Procurement" },
+
+    // Finance Department
+    { nama: "Finance Clerk", level: "Junior", departemen: "Finance" },
+    { nama: "Accountant", level: "Staff", departemen: "Finance" },
+    { nama: "Financial Analyst", level: "Staff", departemen: "Finance" },
+    { nama: "Budget Specialist", level: "Staff", departemen: "Finance" },
+    { nama: "Finance Manager", level: "Manager", departemen: "Finance" },
+    { nama: "Investment Analyst", level: "Senior", departemen: "Finance" },
+  ];
+
+  for (const jab of jabatanData) {
+    const dept = createdDepartemen.find((d) => d.nama === jab.departemen);
+    if (!dept) continue;
+
+    await prisma.jabatan.upsert({
+      where: {
+        nama_departemenId: {
+          nama: jab.nama,
+          departemenId: dept.id,
+        },
+      },
+      update: { level: jab.level },
+      create: {
+        id: randomUUID(),
+        nama: jab.nama,
+        level: jab.level,
+        departemenId: dept.id,
+        updatedAt: new Date(),
+      },
+    });
+  }
+  console.log("âœ… Jabatan created (per departemen)");
+
+  // -------------------- KPI Indicators (2 per departemen) --------------------
+  const kpiIndicators = [
+    // Technology Department Indicators (2)
+    {
+      nama: "Project Delivery Rate",
+      deskripsi: "Persentase proyek yang diselesaikan tepat waktu",
+      bobot: 0.6,
+      departemenId: createdDepartemen.find((d) => d.nama === "Technology")?.id,
+    },
+    {
+      nama: "Code Quality Score",
+      deskripsi: "Skor kualitas kode berdasarkan review dan testing",
+      bobot: 0.4,
+      departemenId: createdDepartemen.find((d) => d.nama === "Technology")?.id,
+    },
+
+    // Sales & Marketing Department Indicators (2)
+    {
+      nama: "Sales Revenue Achievement",
+      deskripsi: "Persentase pencapaian target revenue",
+      bobot: 0.7,
+      departemenId: createdDepartemen.find(
+        (d) => d.nama === "Sales & Marketing"
+      )?.id,
+    },
+    {
+      nama: "Customer Retention",
+      deskripsi: "Persentase customer yang tetap aktif",
+      bobot: 0.3,
+      departemenId: createdDepartemen.find(
+        (d) => d.nama === "Sales & Marketing"
+      )?.id,
+    },
+
+    // HR Department Indicators (2)
+    {
+      nama: "Employee Retention Rate",
+      deskripsi: "Persentase karyawan yang bertahan dalam periode tertentu",
+      bobot: 0.5,
+      departemenId: createdDepartemen.find((d) => d.nama === "HR")?.id,
+    },
+    {
+      nama: "Training Completion Rate",
+      deskripsi: "Persentase penyelesaian program pelatihan",
+      bobot: 0.5,
+      departemenId: createdDepartemen.find((d) => d.nama === "HR")?.id,
+    },
+  ];
+
+  const createdIndicators = [];
+  for (const indicator of kpiIndicators) {
+    const created = await prisma.kpiIndicator.create({
+      data: indicator,
+    });
+    createdIndicators.push(created);
+  }
+  console.log("âœ… KPI Indicators created");
+
+  // Helper function to get indicators by department
+  const getIndicatorsByDepartment = (deptName) => {
+    const dept = createdDepartemen.find((d) => d.nama === deptName);
+    return createdIndicators.filter((ind) => ind.departemenId === dept?.id);
+  };
+
+  // -------------------- User & Karyawan --------------------
+  const users = [
+    // HR Users (2)
+    {
+      username: "hr_manager",
+      email: "hr.manager@company.com",
+      password: "hr123",
+      role: "HR",
+      karyawan: {
+        nama: "Sarah Johnson",
+        gender: "Wanita",
+        alamat: "Jl. Sudirman No. 123, Jakarta",
+        no_telp: "081234567890",
+        tanggal_lahir: new Date("1985-05-15"),
+        pendidikan: "Magister",
+        tanggal_masuk: new Date("2020-01-15"),
+        jalur_rekrut: "Wawancara",
+        departemen: "HR",
+        jabatan: "HR Manager",
+      },
+    },
+    {
+      username: "hr_specialist",
+      email: "hr.specialist@company.com",
+      password: "hr123",
+      role: "HR",
+      karyawan: {
+        nama: "Michael Chen",
+        gender: "Pria",
+        alamat: "Jl. Thamrin No. 45, Jakarta",
+        no_telp: "081234567891",
+        tanggal_lahir: new Date("1990-08-20"),
+        pendidikan: "Sarjana",
+        tanggal_masuk: new Date("2021-03-10"),
+        jalur_rekrut: "Wawancara",
+        departemen: "HR",
+        jabatan: "Recruitment Specialist",
+      },
+    },
+    // Karyawan Users (8)
+    {
+      username: "john_dev",
+      email: "john.dev@company.com",
+      password: "karyawan123",
+      role: "KARYAWAN",
+      karyawan: {
+        nama: "John Developer",
+        gender: "Pria",
+        alamat: "Jl. Gatot Subroto No. 789, Jakarta",
+        no_telp: "081234567892",
+        tanggal_lahir: new Date("1992-12-10"),
+        pendidikan: "Sarjana",
+        tanggal_masuk: new Date("2022-06-01"),
+        jalur_rekrut: "Undangan",
+        departemen: "Technology",
+        jabatan: "Software Engineer",
+      },
+    },
+    {
+      username: "jane_sales",
+      email: "jane.sales@company.com",
+      password: "karyawan123",
+      role: "KARYAWAN",
+      karyawan: {
+        nama: "Jane Smith",
+        gender: "Wanita",
+        alamat: "Jl. Kuningan No. 321, Jakarta",
+        no_telp: "081234567893",
+        tanggal_lahir: new Date("1988-03-25"),
+        pendidikan: "Sarjana",
+        tanggal_masuk: new Date("2021-09-15"),
+        jalur_rekrut: "Wawancara",
+        departemen: "Sales & Marketing",
+        jabatan: "Account Executive",
+      },
+    },
+    {
+      username: "david_tech",
+      email: "david.tech@company.com",
+      password: "karyawan123",
+      role: "KARYAWAN",
+      karyawan: {
+        nama: "David Wilson",
+        gender: "Pria",
+        alamat: "Jl. Senopati No. 56, Jakarta",
+        no_telp: "081234567894",
+        tanggal_lahir: new Date("1995-07-18"),
+        pendidikan: "Sarjana",
+        tanggal_masuk: new Date("2023-01-20"),
+        jalur_rekrut: "Undangan",
+        departemen: "Technology",
+        jabatan: "Junior Developer",
+      },
+    },
+    {
+      username: "lisa_ops",
+      email: "lisa.ops@company.com",
+      password: "karyawan123",
+      role: "KARYAWAN",
+      karyawan: {
+        nama: "Lisa Anderson",
+        gender: "Wanita",
+        alamat: "Jl. Kemang No. 88, Jakarta",
+        no_telp: "081234567895",
+        tanggal_lahir: new Date("1991-04-12"),
+        pendidikan: "Diploma",
+        tanggal_masuk: new Date("2022-08-05"),
+        jalur_rekrut: "Wawancara",
+        departemen: "Operations",
+        jabatan: "Process Coordinator",
+      },
+    },
+    {
+      username: "robert_analyst",
+      email: "robert.analyst@company.com",
+      password: "karyawan123",
+      role: "KARYAWAN",
+      karyawan: {
+        nama: "Robert Martinez",
+        gender: "Pria",
+        alamat: "Jl. Panglima Polim No. 12, Jakarta",
+        no_telp: "081234567896",
+        tanggal_lahir: new Date("1989-11-30"),
+        pendidikan: "Magister",
+        tanggal_masuk: new Date("2021-05-15"),
+        jalur_rekrut: "Undangan",
+        departemen: "Analytics",
+        jabatan: "Data Analyst",
+      },
+    },
+    {
+      username: "emma_sales",
+      email: "emma.sales@company.com",
+      password: "karyawan123",
+      role: "KARYAWAN",
+      karyawan: {
+        nama: "Emma Rodriguez",
+        gender: "Wanita",
+        alamat: "Jl. Tebet No. 234, Jakarta",
+        no_telp: "081234567897",
+        tanggal_lahir: new Date("1993-02-28"),
+        pendidikan: "Sarjana",
+        tanggal_masuk: new Date("2022-11-10"),
+        jalur_rekrut: "Wawancara",
+        departemen: "Sales & Marketing",
+        jabatan: "Sales Representative",
+      },
+    },
+    {
+      username: "alex_finance",
+      email: "alex.finance@company.com",
+      password: "karyawan123",
+      role: "KARYAWAN",
+      karyawan: {
+        nama: "Alex Thompson",
+        gender: "Pria",
+        alamat: "Jl. Menteng No. 67, Jakarta",
+        no_telp: "081234567898",
+        tanggal_lahir: new Date("1987-09-05"),
+        pendidikan: "Sarjana",
+        tanggal_masuk: new Date("2020-04-01"),
+        jalur_rekrut: "Undangan",
+        departemen: "Finance",
+        jabatan: "Accountant",
+      },
+    },
+    {
+      username: "sophia_rd",
+      email: "sophia.rd@company.com",
+      password: "karyawan123",
+      role: "KARYAWAN",
+      karyawan: {
+        nama: "Sophia Lee",
+        gender: "Wanita",
+        alamat: "Jl. Cipete No. 91, Jakarta",
+        no_telp: "081234567899",
+        tanggal_lahir: new Date("1994-06-14"),
+        pendidikan: "Magister",
+        tanggal_masuk: new Date("2023-02-20"),
+        jalur_rekrut: "Wawancara",
+        departemen: "R&D",
+        jabatan: "Research Assistant",
+      },
+    },
+  ];
+
+  const createdUsers = [];
+  const createdKaryawan = [];
+
+  for (const userData of users) {
+    const user = await prisma.user.upsert({
+      where: { email: userData.email },
+      update: {},
+      create: {
+        username: userData.username,
+        email: userData.email,
+        password: await bcrypt.hash(userData.password, 10),
+        role: userData.role,
+        updatedAt: new Date(),
+      },
+    });
+    createdUsers.push(user);
+
+    // Get departemen and jabatan IDs
+    const dept = createdDepartemen.find(d => d.nama === userData.karyawan.departemen);
+    const jabatanRecord = await prisma.jabatan.findFirst({
+      where: {
+        nama: userData.karyawan.jabatan,
+        departemenId: dept?.id
+      }
+    });
+
+    const karyawan = await prisma.karyawan.upsert({
+      where: { userId: user.username },
+      update: {},
+      create: {
+        id: randomUUID(),
+        nama: userData.karyawan.nama,
+        gender: userData.karyawan.gender,
+        alamat: userData.karyawan.alamat,
+        no_telp: userData.karyawan.no_telp,
+        tanggal_lahir: userData.karyawan.tanggal_lahir,
+        pendidikan: userData.karyawan.pendidikan,
+        tanggal_masuk: userData.karyawan.tanggal_masuk,
+        jalur_rekrut: userData.karyawan.jalur_rekrut,
+        userId: user.username,
+        updatedAt: new Date(),
+        departemen: {
+          connect: [{ id: dept?.id }],
+        },
+        jabatan: jabatanRecord ? {
+          connect: [{ id: jabatanRecord.id }],
+        } : undefined,
+      },
+    });
+    createdKaryawan.push(karyawan);
+  }
+
+  console.log("âœ… Users and Karyawan created");
+
+  // -------------------- KPI Data with Details (Simplified) --------------------
+
+  // Helper untuk create KPI dengan details
+  const createKPIWithDetails = async (
+    karyawanId,
+    year,
+    score,
+    indicators,
+    details,
+    periodeYear = null,
+    periodeMonth = null
+  ) => {
+    // Without the DB-level unique constraint we manually ensure a single seed per karyawan/year
+    let kpi = await prisma.kpi.findFirst({
+      where: {
+        karyawanId,
+        year,
+      },
+    });
+
+    if (kpi) {
+      // refresh score and clean up previous details to keep seed idempotent
+      kpi = await prisma.kpi.update({
+        where: { id: kpi.id },
+        data: { score, updatedAt: new Date() },
+      });
+      await prisma.kpiDetail.deleteMany({ where: { kpiId: kpi.id } });
+    } else {
+      kpi = await prisma.kpi.create({
+        data: {
+          id: randomUUID(),
+          karyawanId,
+          year,
+          score,
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    await prisma.kpiDetail.createMany({
+      data: details.map((detail) => ({
+        id: randomUUID(),
+        kpiId: kpi.id,
+        indikatorId: indicators[detail.indikatorIndex].id,
+        target: detail.target,
+        realisasi: detail.realisasi,
+        score:
+          (detail.realisasi / detail.target) *
+          indicators[detail.indikatorIndex].bobot *
+          100,
+        periodeYear: detail.periodeYear || periodeYear,
+        periodeMonth: detail.periodeMonth || periodeMonth,
+      })),
+    });
+  };
+
+  // Sarah Johnson (HR Manager) - 2023, 2024
+  const sarahHRIndicators = getIndicatorsByDepartment("HR");
+  await createKPIWithDetails(createdKaryawan[0].id, 2023, 88.0, sarahHRIndicators, [
+    { indikatorIndex: 0, target: 92, realisasi: 91 },
+    { indikatorIndex: 1, target: 95, realisasi: 94 },
+  ], 2023, 10); // Oktober 2023
+  await createKPIWithDetails(createdKaryawan[0].id, 2024, 92.5, sarahHRIndicators, [
+    { indikatorIndex: 0, target: 93, realisasi: 95 },
+    { indikatorIndex: 1, target: 96, realisasi: 97 },
+  ], 2024, 11); // November 2024
+
+  // Michael Chen (HR Specialist) - 2024
+  await createKPIWithDetails(createdKaryawan[1].id, 2024, 85.0, sarahHRIndicators, [
+    { indikatorIndex: 0, target: 90, realisasi: 87 },
+    { indikatorIndex: 1, target: 92, realisasi: 90 },
+  ], 2024, 11); // November 2024
+
+  // John Developer (Software Engineer) - 2023, 2024
+  const johnTechIndicators = getIndicatorsByDepartment("Technology");
+  await createKPIWithDetails(createdKaryawan[2].id, 2023, 85.0, johnTechIndicators, [
+    { indikatorIndex: 0, target: 92, realisasi: 90 },
+    { indikatorIndex: 1, target: 88, realisasi: 86 },
+  ], 2023, 9); // September 2023
+  await createKPIWithDetails(createdKaryawan[2].id, 2024, 88.5, johnTechIndicators, [
+    { indikatorIndex: 0, target: 93, realisasi: 92 },
+    { indikatorIndex: 1, target: 90, realisasi: 91 },
+  ], 2024, 11); // November 2024
+
+  // Jane Smith (Sales) - 2023, 2024
+  const janeSalesIndicators = getIndicatorsByDepartment("Sales & Marketing");
+  await createKPIWithDetails(createdKaryawan[3].id, 2023, 90.0, janeSalesIndicators, [
+    { indikatorIndex: 0, target: 100, realisasi: 105 },
+    { indikatorIndex: 1, target: 85, realisasi: 82 },
+  ], 2023, 11); // November 2023
+  await createKPIWithDetails(createdKaryawan[3].id, 2024, 93.5, janeSalesIndicators, [
+    { indikatorIndex: 0, target: 110, realisasi: 118 },
+    { indikatorIndex: 1, target: 87, realisasi: 88 },
+  ], 2024, 11); // November 2024
+
+  // David Wilson (Junior Dev) - 2024
+  await createKPIWithDetails(createdKaryawan[4].id, 2024, 78.0, johnTechIndicators, [
+    { indikatorIndex: 0, target: 85, realisasi: 80 },
+    { indikatorIndex: 1, target: 80, realisasi: 75 },
+  ]);
+
+  // Lisa Anderson (Operations) - 2024
+  const lisaOpsIndicators = getIndicatorsByDepartment("Operations");
+  if (lisaOpsIndicators.length === 0) {
+    // Jika tidak ada KPI untuk Operations, skip
+    console.log("âš ï¸ No KPI indicators for Operations department");
+  } else {
+    await createKPIWithDetails(createdKaryawan[5].id, 2024, 82.0, lisaOpsIndicators, [
+      { indikatorIndex: 0, target: 90, realisasi: 85 },
+    ]);
+  }
+
+  // Robert Martinez (Data Analyst) - 2023, 2024
+  const robertAnalyticsIndicators = getIndicatorsByDepartment("Analytics");
+  if (robertAnalyticsIndicators.length === 0) {
+    console.log("âš ï¸ No KPI indicators for Analytics department");
+  } else {
+    await createKPIWithDetails(createdKaryawan[6].id, 2023, 87.0, robertAnalyticsIndicators, [
+      { indikatorIndex: 0, target: 90, realisasi: 88 },
+    ]);
+    await createKPIWithDetails(createdKaryawan[6].id, 2024, 91.0, robertAnalyticsIndicators, [
+      { indikatorIndex: 0, target: 92, realisasi: 94 },
+    ]);
+  }
+
+  // Emma Rodriguez (Sales Rep) - 2024
+  await createKPIWithDetails(createdKaryawan[7].id, 2024, 83.0, janeSalesIndicators, [
+    { indikatorIndex: 0, target: 95, realisasi: 92 },
+    { indikatorIndex: 1, target: 80, realisasi: 78 },
+  ]);
+
+  // Alex Thompson (Finance) - 2023, 2024
+  const alexFinanceIndicators = getIndicatorsByDepartment("Finance");
+  if (alexFinanceIndicators.length === 0) {
+    console.log("âš ï¸ No KPI indicators for Finance department");
+  } else {
+    await createKPIWithDetails(createdKaryawan[8].id, 2023, 86.0, alexFinanceIndicators, [
+      { indikatorIndex: 0, target: 95, realisasi: 90 },
+    ]);
+    await createKPIWithDetails(createdKaryawan[8].id, 2024, 89.0, alexFinanceIndicators, [
+      { indikatorIndex: 0, target: 96, realisasi: 93 },
+    ]);
+  }
+
+  // Sophia Lee (R&D) - 2024
+  const sophiaRnDIndicators = getIndicatorsByDepartment("R&D");
+  if (sophiaRnDIndicators.length === 0) {
+    console.log("âš ï¸ No KPI indicators for R&D department");
+  } else {
+    await createKPIWithDetails(createdKaryawan[9].id, 2024, 80.0, sophiaRnDIndicators, [
+      { indikatorIndex: 0, target: 85, realisasi: 82 },
+    ]);
+  }
+
+  console.log("âœ… KPI data with details created");
+
+  // -------------------- Rating Data --------------------
+  const ratingData = [
+    // Sarah Johnson
+    { karyawanId: createdKaryawan[0].id, year: 2023, score: 4.4, notes: "Excellent HR management" },
+    { karyawanId: createdKaryawan[0].id, year: 2024, score: 4.6, notes: "Outstanding leadership" },
+    
+    // Michael Chen
+    { karyawanId: createdKaryawan[1].id, year: 2024, score: 4.1, notes: "Good recruitment skills" },
+    
+    // John Developer
+    { karyawanId: createdKaryawan[2].id, year: 2023, score: 4.1, notes: "Solid technical skills" },
+    { karyawanId: createdKaryawan[2].id, year: 2024, score: 4.3, notes: "Strong developer" },
+    
+    // Jane Smith
+    { karyawanId: createdKaryawan[3].id, year: 2023, score: 4.5, notes: "Excellent sales results" },
+    { karyawanId: createdKaryawan[3].id, year: 2024, score: 4.7, notes: "Top performer" },
+    
+    // David Wilson
+    { karyawanId: createdKaryawan[4].id, year: 2024, score: 3.8, notes: "Good potential" },
+    
+    // Lisa Anderson
+    { karyawanId: createdKaryawan[5].id, year: 2024, score: 4.0, notes: "Reliable worker" },
+    
+    // Robert Martinez
+    { karyawanId: createdKaryawan[6].id, year: 2023, score: 4.3, notes: "Strong analytical skills" },
+    { karyawanId: createdKaryawan[6].id, year: 2024, score: 4.5, notes: "Excellent analyst" },
+    
+    // Emma Rodriguez
+    { karyawanId: createdKaryawan[7].id, year: 2024, score: 4.0, notes: "Good sales skills" },
+    
+    // Alex Thompson
+    { karyawanId: createdKaryawan[8].id, year: 2023, score: 4.2, notes: "Detail oriented" },
+    { karyawanId: createdKaryawan[8].id, year: 2024, score: 4.4, notes: "Excellent accuracy" },
+    
+    // Sophia Lee
+    { karyawanId: createdKaryawan[9].id, year: 2024, score: 3.9, notes: "Promising researcher" },
+  ];
+
+  for (const rating of ratingData) {
+    await prisma.rating.upsert({
+      where: {
+        karyawanId_year: {
+          karyawanId: rating.karyawanId,
+          year: rating.year,
+        },
+      },
+      update: {},
+      create: {
+        id: randomUUID(),
+        ...rating,
+        updatedAt: new Date(),
+      },
+    });
+  }
+  console.log("âœ… Rating data created");
+
+  // -------------------- Pelatihan Data (Simplified) --------------------
+  const pelatihanData = [
+    {
+      nama: "Leadership Development 2024",
+      tanggal: new Date("2024-01-15"),
+      lokasi: "Jakarta Convention Center",
+      peserta: [
+        { karyawanId: createdKaryawan[0].id, skor: 95, catatan: "Excellent leadership" },
+        { karyawanId: createdKaryawan[3].id, skor: 92, catatan: "Strong potential" },
+      ],
+    },
+    {
+      nama: "Technical Skills Workshop",
+      tanggal: new Date("2024-04-05"),
+      lokasi: "Jakarta Tech Hub",
+      peserta: [
+        { karyawanId: createdKaryawan[2].id, skor: 93, catatan: "Great technical skills" },
+        { karyawanId: createdKaryawan[4].id, skor: 88, catatan: "Good progress" },
+      ],
+    },
+    {
+      nama: "Sales Excellence Training",
+      tanggal: new Date("2024-05-12"),
+      lokasi: "Jakarta Business Center",
+      peserta: [
+        { karyawanId: createdKaryawan[3].id, skor: 96, catatan: "Outstanding performance" },
+        { karyawanId: createdKaryawan[7].id, skor: 89, catatan: "Good improvement" },
+      ],
+    },
+  ];
+
+  for (const pelatihan of pelatihanData) {
+    const createdPelatihan = await prisma.pelatihan.create({
+      data: {
+        id: randomUUID(),
+        nama: pelatihan.nama,
+        tanggal: pelatihan.tanggal,
+        lokasi: pelatihan.lokasi,
+        updatedAt: new Date(),
+      },
+    });
+
+    for (const peserta of pelatihan.peserta) {
+      // Set periode berdasarkan tanggal pelatihan
+      const pelatihanDate = new Date(pelatihan.tanggal);
+      const periodeYear = pelatihanDate.getFullYear();
+      const periodeMonth = pelatihanDate.getMonth() + 1;
+
+      await prisma.pelatihandetail.create({
+        data: {
+          id: randomUUID(),
+          pelatihanId: createdPelatihan.id,
+          karyawanId: peserta.karyawanId,
+          skor: peserta.skor,
+          catatan: peserta.catatan,
+          periodeYear: periodeYear,
+          periodeMonth: periodeMonth,
+          updatedAt: new Date(),
+        },
+      });
+    }
+  }
+  console.log("âœ… Pelatihan data created");
+
+  // -------------------- Penghargaan Data (Simplified) --------------------
+  const penghargaanData = [
+    {
+      nama: "Employee of the Year 2024",
+      tahun: new Date("2024-12-31"),
+      karyawan: [createdKaryawan[3].id], // Jane Smith
+    },
+    {
+      nama: "Best Team Player 2024",
+      tahun: new Date("2024-12-31"),
+      karyawan: [createdKaryawan[2].id, createdKaryawan[5].id], // John & Lisa
+    },
+    {
+      nama: "Leadership Excellence 2024",
+      tahun: new Date("2024-12-31"),
+      karyawan: [createdKaryawan[0].id], // Sarah Johnson
+    },
+  ];
+
+  for (const penghargaan of penghargaanData) {
+    await prisma.penghargaan.create({
+      data: {
+        id: randomUUID(),
+        nama: penghargaan.nama,
+        tahun: penghargaan.tahun,
+        updatedAt: new Date(),
+        karyawan: {
+          connect: penghargaan.karyawan.map((id) => ({ id })),
+        },
+      },
+    });
+  }
+  console.log("âœ… Penghargaan data created");
+
+  // -------------------- Kehadiran Data (30 hari terakhir) --------------------
+  const today = new Date();
+  const kehadiranData = [];
+
+  // Generate kehadiran untuk 30 hari terakhir untuk setiap karyawan
+  for (let day = 29; day >= 0; day--) {
+    const tanggal = new Date(today);
+    tanggal.setDate(tanggal.getDate() - day);
+    tanggal.setHours(0, 0, 0, 0);
+
+    const dayOfWeek = tanggal.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    // Skip weekend
+    if (isWeekend) continue;
+
+    for (const karyawan of createdKaryawan) {
+      // Random status dengan distribusi realistis
+      const rand = Math.random();
+      let status, waktuMasuk, waktuKeluar, keterangan;
+
+      if (rand < 0.80) {
+        // 80% hadir tepat waktu
+        status = "HADIR";
+        waktuMasuk = new Date(tanggal);
+        waktuMasuk.setHours(7, 30 + Math.floor(Math.random() * 30), 0); // 7:30 - 8:00
+        waktuKeluar = new Date(tanggal);
+        waktuKeluar.setHours(17, Math.floor(Math.random() * 60), 0); // 17:00 - 18:00
+      } else if (rand < 0.92) {
+        // 12% terlambat
+        status = "TERLAMBAT";
+        waktuMasuk = new Date(tanggal);
+        waktuMasuk.setHours(8, 10 + Math.floor(Math.random() * 50), 0); // 8:10 - 9:00
+        waktuKeluar = new Date(tanggal);
+        waktuKeluar.setHours(17, Math.floor(Math.random() * 60), 0);
+        keterangan = "Terlambat karena kemacetan";
+      } else if (rand < 0.97) {
+        // 5% izin
+        status = "IZIN";
+        keterangan = "Keperluan keluarga";
+      } else {
+        // 3% sakit
+        status = "SAKIT";
+        keterangan = "Sakit flu";
+      }
+
+      kehadiranData.push({
+        karyawanId: karyawan.id,
+        tanggal,
+        waktuMasuk,
+        waktuKeluar,
+        status,
+        lokasi: waktuMasuk ? "Kantor Pusat Jakarta" : null,
+        keterangan,
+      });
+    }
+  }
+
+  // Bulk create kehadiran data
+  await prisma.kehadiran.createMany({
+    data: kehadiranData,
+    skipDuplicates: true,
+  });
+  console.log(`âœ… Kehadiran data created (${kehadiranData.length} records)`);
+
+  console.log("ðŸŽ‰ Seeding completed successfully!");
+  console.log("\nðŸ“‹ Test Accounts:");
+  console.log("=" .repeat(60));
+  console.log("HR Accounts:");
+  console.log("1. hr.manager@company.com / hr123 (Sarah Johnson - HR Manager)");
+  console.log("2. hr.specialist@company.com / hr123 (Michael Chen - Recruitment Specialist)");
+  console.log("\nKaryawan Accounts:");
+  console.log("3. john.dev@company.com / karyawan123 (John - Software Engineer)");
+  console.log("4. jane.sales@company.com / karyawan123 (Jane - Account Executive)");
+  console.log("5. david.tech@company.com / karyawan123 (David - Junior Developer)");
+  console.log("6. lisa.ops@company.com / karyawan123 (Lisa - Process Coordinator)");
+  console.log("7. robert.analyst@company.com / karyawan123 (Robert - Data Analyst)");
+  console.log("8. emma.sales@company.com / karyawan123 (Emma - Sales Representative)");
+  console.log("9. alex.finance@company.com / karyawan123 (Alex - Accountant)");
+  console.log("10. sophia.rd@company.com / karyawan123 (Sophia - Research Assistant)");
+  console.log("=" .repeat(60));
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());
