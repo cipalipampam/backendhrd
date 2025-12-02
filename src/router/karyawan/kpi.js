@@ -351,6 +351,20 @@ router.get("/kpi/:id", allowRoles(ROLES.HR), async (req, res) => {
       });
     }
 
+    // Log for debugging
+    console.log(`[KPI GET by ID] KPI ID: ${id}, kpiDetails count: ${kpi.kpiDetails?.length || 0}`);
+    if (kpi.kpiDetails && kpi.kpiDetails.length > 0) {
+      console.log('[KPI GET by ID] Details:', kpi.kpiDetails.map(d => ({
+        id: d.id,
+        indikatorId: d.indikatorId,
+        indikatorNama: d.indikator?.nama,
+        target: d.target,
+        realisasi: d.realisasi,
+        periodeYear: d.periodeYear,
+        periodeMonth: d.periodeMonth
+      })));
+    }
+
     res.json({
       status: 200,
       message: "KPI found",
@@ -699,6 +713,19 @@ router.put("/kpi/:id", allowRoles(ROLES.HR), async (req, res) => {
       }
     }
 
+    console.log(`[KPI UPDATE] KPI ID: ${id}, Received ${kpiDetails?.length || 0} details`);
+    console.log(`[KPI UPDATE] Updated details count: ${updatedDetails.length}`);
+    if (updatedDetails.length > 0) {
+      console.log('[KPI UPDATE] Details to save:', updatedDetails.map(d => ({
+        id: d.id,
+        indikatorId: d.indikatorId,
+        target: d.target,
+        realisasi: d.realisasi,
+        periodeYear: d.periodeYear,
+        periodeMonth: d.periodeMonth
+      })));
+    }
+
     const kpi = await prisma.$transaction(async (tx) => {
       const updatedKPI = await tx.kpi.update({
         where: { id },
@@ -709,9 +736,10 @@ router.put("/kpi/:id", allowRoles(ROLES.HR), async (req, res) => {
       });
 
       if (Array.isArray(kpiDetails)) {
-        await tx.kpiDetail.deleteMany({
+        const deletedCount = await tx.kpiDetail.deleteMany({
           where: { kpiId: id }
         });
+        console.log(`[KPI UPDATE] Deleted ${deletedCount.count} old details`);
 
         if (updatedDetails.length > 0) {
           await tx.kpiDetail.createMany({
@@ -720,10 +748,11 @@ router.put("/kpi/:id", allowRoles(ROLES.HR), async (req, res) => {
               kpiId: id
             }))
           });
+          console.log(`[KPI UPDATE] Created ${updatedDetails.length} new details`);
         }
       }
 
-      return tx.kpi.findUnique({
+      const finalKpi = await tx.kpi.findUnique({
         where: { id: updatedKPI.id },
         include: {
           karyawan: {
@@ -745,6 +774,9 @@ router.put("/kpi/:id", allowRoles(ROLES.HR), async (req, res) => {
           }
         }
       });
+
+      console.log(`[KPI UPDATE] Final KPI has ${finalKpi.kpiDetails?.length || 0} details`);
+      return finalKpi;
     });
 
     res.json({
