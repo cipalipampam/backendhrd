@@ -11,6 +11,8 @@ router.post(
   "/check-in",
   [
     body("lokasi").optional().isString(),
+    body("latitude").optional().isFloat(),
+    body("longitude").optional().isFloat(),
     body("keterangan").optional().isString(),
   ],
   async (req, res) => {
@@ -80,6 +82,8 @@ router.post(
           waktuMasuk,
           status,
           lokasi: req.body.lokasi,
+          latitude: req.body.latitude,
+          longitude: req.body.longitude,
           keterangan: req.body.keterangan,
         },
         create: {
@@ -88,6 +92,8 @@ router.post(
           waktuMasuk,
           status,
           lokasi: req.body.lokasi,
+          latitude: req.body.latitude,
+          longitude: req.body.longitude,
           keterangan: req.body.keterangan,
         },
         include: {

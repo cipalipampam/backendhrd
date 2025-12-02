@@ -99,6 +99,27 @@ router.post(
   }
 );
 
+// Employee: get my izin requests
+router.get('/my-requests', async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const karyawan = await prisma.karyawan.findUnique({ where: { userId: user.username } });
+    if (!karyawan) return res.status(404).json({ message: 'Karyawan not found' });
+
+    const requests = await prisma.izinRequest.findMany({
+      where: { karyawanId: karyawan.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({ status: 200, message: 'My izin requests', data: requests });
+  } catch (error) {
+    console.error('Get my izin requests error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error', error: error.message });
+  }
+});
+
 // HR: list izin requests (filter by status optional)
 router.get('/requests', allowRoles(ROLES.HR), async (req, res) => {
   try {

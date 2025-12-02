@@ -420,4 +420,140 @@ router.post('/:id/decline', async (req, res) => {
     }
 });
 
+// Download certificate for completed training
+router.get('/:id/certificate', async (req, res) => {
+    try {
+        const pelatihanId = req.params.id;
+        const user = req.user;
+        
+        if (!user) return res.status(401).json({ message: 'Unauthorized' });
+
+        // Get karyawan
+        const karyawan = await prisma.karyawan.findUnique({ 
+            where: { userId: user.username } 
+        });
+        
+        if (!karyawan) return res.status(404).json({ message: 'Karyawan not found' });
+
+        // Get pelatihan detail
+        const pelatihanDetail = await prisma.pelatihandetail.findUnique({
+            where: { 
+                pelatihanId_karyawanId: { pelatihanId, karyawanId: karyawan.id } 
+            },
+            include: {
+                pelatihan: true,
+                karyawan: true
+            }
+        });
+
+        if (!pelatihanDetail) {
+            return res.status(404).json({ message: 'Pelatihan record not found' });
+        }
+
+        // Check if attended (hadir = true)
+        if (!pelatihanDetail.hadir) {
+            return res.status(400).json({ 
+                message: 'Sertifikat hanya tersedia untuk peserta yang hadir' 
+            });
+        }
+
+        // Generate PDF using pdfkit
+        const PDFDocument = require('pdfkit');
+        const doc = new PDFDocument({ size: 'A4', layout: 'landscape' });
+
+        // Set response headers
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="Sertifikat-${karyawan.nama.replace(/\s/g, '_')}.pdf"`);
+
+        // Pipe PDF to response
+        doc.pipe(res);
+
+        // Draw certificate border
+        doc.rect(50, 50, doc.page.width - 100, doc.page.height - 100)
+           .lineWidth(3)
+           .stroke('#667eea');
+
+        // Title
+        doc.fontSize(36)
+           .font('Helvetica-Bold')
+           .fillColor('#667eea')
+           .text('SERTIFIKAT PELATIHAN', 0, 120, { align: 'center' });
+
+        // Subtitle
+        doc.fontSize(14)
+           .font('Helvetica')
+           .fillColor('#333')
+           .text('Diberikan kepada:', 0, 190, { align: 'center' });
+
+        // Name
+        doc.fontSize(32)
+           .font('Helvetica-Bold')
+           .fillColor('#000')
+           .text(karyawan.nama, 0, 230, { align: 'center' });
+
+        // Description
+        doc.fontSize(14)
+           .font('Helvetica')
+           .fillColor('#333')
+           .text('Telah mengikuti dan menyelesaikan pelatihan:', 0, 290, { align: 'center' });
+
+        // Training name
+        doc.fontSize(20)
+           .font('Helvetica-Bold')
+           .fillColor('#667eea')
+           .text(pelatihanDetail.pelatihan.nama, 0, 330, { align: 'center' });
+
+        // Date and location
+        const tanggalFormatted = new Date(pelatihanDetail.pelatihan.tanggal).toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+
+        doc.fontSize(12)
+           .font('Helvetica')
+           .fillColor('#666')
+           .text(`Tanggal: ${tanggalFormatted}`, 0, 380, { align: 'center' });
+
+        doc.text(`Lokasi: ${pelatihanDetail.pelatihan.lokasi}`, 0, 400, { align: 'center' });
+
+        // Score if available
+        if (pelatihanDetail.skor) {
+            doc.fontSize(14)
+               .font('Helvetica-Bold')
+               .fillColor('#10b981')
+               .text(`Skor: ${pelatihanDetail.skor}`, 0, 430, { align: 'center' });
+        }
+
+        // Footer - signature section
+        const signatureY = doc.page.height - 150;
+        
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor('#666')
+           .text('Jakarta, ' + new Date().toLocaleDateString('id-ID', {
+               day: 'numeric',
+               month: 'long',
+               year: 'numeric'
+           }), 0, signatureY, { align: 'center' });
+
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor('#333')
+           .text('HRD Manager', 0, signatureY + 60, { align: 'center' });
+
+        // Finalize PDF
+        doc.end();
+
+    } catch (error) {
+        console.error('Certificate generation error:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ 
+                message: 'Internal server error',
+                error: error.message 
+            });
+        }
+    }
+});
+
 export default router;

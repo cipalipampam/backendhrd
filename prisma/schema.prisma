@@ -186,13 +186,15 @@ model rating {
 }
 
 model user {
-  username  String    @id
-  email     String    @unique(map: "User_email_key")
-  role      user_role @default(KARYAWAN)
-  password  String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  karyawan  karyawan?
+  username     String        @id
+  email        String        @unique(map: "User_email_key")
+  role         user_role     @default(KARYAWAN)
+  password     String
+  foto_profil  String?
+  nama_lengkap String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  karyawan     karyawan?
 }
 
 enum karyawan_gender {
@@ -201,17 +203,19 @@ enum karyawan_gender {
 }
 
 model kehadiran {
-  id           String            @id @default(cuid())
-  karyawanId   String
-  tanggal      DateTime          @default(now())
-  waktuMasuk   DateTime?
-  waktuKeluar  DateTime?
-  status       kehadiran_status  @default(BELUM_ABSEN)
-  lokasi       String?
-  keterangan   String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  karyawan     karyawan          @relation(fields: [karyawanId], references: [id], map: "Kehadiran_karyawanId_fkey")
+  id            String            @id @default(cuid())
+  karyawanId    String
+  tanggal       DateTime          @default(now())
+  waktuMasuk    DateTime?
+  waktuKeluar   DateTime?
+  status        kehadiran_status  @default(BELUM_ABSEN)
+  lokasi        String?
+  latitude      Float?
+  longitude     Float?
+  keterangan    String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  karyawan      karyawan          @relation(fields: [karyawanId], references: [id], map: "Kehadiran_karyawanId_fkey")
 
   @@unique([karyawanId, tanggal], map: "Kehadiran_karyawanId_tanggal_key")
   @@index([karyawanId], map: "Kehadiran_karyawanId_idx")

@@ -5,6 +5,15 @@ import { ROLES } from "../../constants/roles.js";
 
 const router = Router();
 
+// Convert BigInt in query result → Number
+function convertBigInt(obj) {
+  return JSON.parse(
+    JSON.stringify(obj, (_, v) =>
+      typeof v === "bigint" ? Number(v) : v
+    )
+  );
+}
+
 // Encoding mappings
 const ENCODING = {
   departemen: {
@@ -211,6 +220,161 @@ router.get("/", allowRoles(ROLES.HR), async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+});
+
+// ================================
+// GET /api/karyawan-features/my-kpi-bulanan
+// Endpoint untuk karyawan melihat KPI bulanan mereka sendiri
+// ================================
+router.get("/my-kpi-bulanan", async (req, res) => {
+  try {
+    console.log('🔵 [my-kpi-bulanan] Request received');
+    console.log('🔵 [my-kpi-bulanan] User:', req.user);
+    
+    const username = req.user?.username;
+    
+    if (!username) {
+      console.log('❌ [my-kpi-bulanan] No username in req.user');
+      return res.status(401).json({
+        status: 401,
+        message: "Unauthorized: User tidak ditemukan",
+      });
+    }
+    
+    console.log('✅ [my-kpi-bulanan] Username:', username);
+
+    // Dapatkan karyawan berdasarkan username
+    const karyawan = await prisma.karyawan.findFirst({
+      where: { userId: username },
+      select: { id: true },
+    });
+
+    if (!karyawan) {
+      return res.status(404).json({
+        status: 404,
+        message: "Data karyawan tidak ditemukan",
+      });
+    }
+
+    const karyawanId = karyawan.id;
+
+    // Query KPI bulanan (sama seperti di kpi-karyawan.js tapi filtered by karyawanId)
+    const query = `
+      SELECT
+        k.id AS karyawanId,
+        k.nama AS namaKaryawan,
+        d.id AS departemenId,
+        d.nama AS departemen,
+
+        kplain.periodeYear AS tahun,
+        LPAD(kplain.periodeMonth, 2, '0') AS bulan,
+
+        COALESCE(p.scorePresensi, 0) AS scorePresensi,
+        COALESCE(t.avgPelatihan, 0) AS scorePelatihan,
+
+        60 AS bobotPresensi,
+        40 AS bobotPelatihan,
+
+        kplain.totalBobotIndikatorLain,
+        kplain.totalScoreIndikatorLain,
+        kplain.kpiIndikatorLain,
+
+        LEAST(100, GREATEST(0,
+          CASE 
+            WHEN kplain.kpiIndikatorLain IS NULL THEN
+              (
+                (COALESCE(p.scorePresensi, 0) * 60) +
+                (COALESCE(t.avgPelatihan, 0) * 40)
+              ) / 100
+            ELSE
+              (
+                0.5 * (
+                  (COALESCE(p.scorePresensi, 0) * 60) +
+                  (COALESCE(t.avgPelatihan, 0) * 40)
+                ) / 100
+              ) + (
+                0.5 * kplain.kpiIndikatorLain
+              )
+          END
+        )) AS kpiFinal
+
+      FROM 
+      (
+        SELECT
+          kp.karyawanId,
+          kd.periodeYear,
+          kd.periodeMonth,
+          SUM(ki.bobot) AS totalBobotIndikatorLain,
+          SUM(kd.score) AS totalScoreIndikatorLain,
+          AVG(kd.score) AS kpiIndikatorLain
+        FROM kpidetail kd
+        JOIN kpi kp ON kp.id = kd.kpiId
+        JOIN kpiindicator ki ON ki.id = kd.indikatorId
+        WHERE ki.nama NOT IN ('presensi', 'pelatihan')
+        GROUP BY kp.karyawanId, kd.periodeYear, kd.periodeMonth
+      ) kplain
+
+      JOIN karyawan k ON k.id = kplain.karyawanId
+      LEFT JOIN _departemenonkaryawan dok ON dok.B = k.id
+      LEFT JOIN departemen d ON d.id = dok.A
+
+      LEFT JOIN 
+      (
+        SELECT
+          kh.karyawanId,
+          YEAR(kh.tanggal) AS periodeYear,
+          MONTH(kh.tanggal) AS periodeMonth,
+          SUM(
+            CASE 
+              WHEN kh.status = 'HADIR' THEN 100
+              WHEN kh.status IN ('IZIN','SAKIT') THEN 80
+              WHEN kh.status = 'TERLAMBAT' THEN 70
+              WHEN kh.status = 'ALPA' THEN 0
+              ELSE 0
+            END
+          ) / COUNT(*) AS scorePresensi
+        FROM kehadiran kh
+        GROUP BY kh.karyawanId, YEAR(kh.tanggal), MONTH(kh.tanggal)
+      ) p
+        ON p.karyawanId = kplain.karyawanId
+       AND p.periodeYear = kplain.periodeYear
+       AND p.periodeMonth = kplain.periodeMonth
+
+      LEFT JOIN
+      (
+        SELECT
+          pd.karyawanId,
+          pd.periodeYear,
+          pd.periodeMonth,
+          AVG(pd.skor) AS avgPelatihan
+        FROM pelatihandetail pd
+        GROUP BY pd.karyawanId, pd.periodeYear, pd.periodeMonth
+      ) t
+        ON t.karyawanId = kplain.karyawanId
+       AND t.periodeYear = kplain.periodeYear
+       AND t.periodeMonth = kplain.periodeMonth
+
+      WHERE k.id = ?
+      ORDER BY kplain.periodeYear DESC, kplain.periodeMonth DESC
+    `;
+
+    const results = await prisma.$queryRawUnsafe(query, karyawanId);
+    const clean = convertBigInt(results);
+
+    return res.json({
+      status: 200,
+      message: "KPI bulanan karyawan retrieved",
+      data: clean,
+    });
+
+  } catch (error) {
+    console.error("Error getting my KPI bulanan:", error);
+    return res.status(500).json({
       status: 500,
       message: "Internal server error",
       error: error.message,

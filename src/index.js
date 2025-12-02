@@ -16,6 +16,7 @@ import kpiKaryawan from './router/karyawan/kpi-karyawan.js';
 import penghargaan from './router/karyawan/penghargaan.js';
 import kehadiran from './router/karyawan/kehadiran.js';
 import izinRouter from './router/karyawan/izin.js';
+import profile from './router/karyawan/profile.js';
 import pelatihan from './router/pelatihan/pelatihan.js';
 import xgboostModel from './router/promotion-ai/xgboost-model.js';
 import promotion from './router/promotion-ai/promotion.js';
@@ -48,6 +49,7 @@ app.use('/api/kpi/bulanan', accessValidation, kpiBulanan);
 app.use('/api/penghargaan', accessValidation, penghargaan);
 app.use('/api/kehadiran', accessValidation, kehadiran);
 app.use('/api/kehadiran', accessValidation, izinRouter);
+app.use('/api/profile', accessValidation, profile);
 
 // serve uploaded files (izin attachments)
 import path from 'path';
@@ -62,8 +64,9 @@ app.use('/api/promotion', accessValidation, promotion);
 
 app.use('/api/predict', accessValidation, predict);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`App listening on port http://localhost:${PORT}`)
+  console.log(`Network: http://10.10.184.147:${PORT}`)
 })

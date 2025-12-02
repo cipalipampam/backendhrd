@@ -38,7 +38,8 @@ router.post("/login", async (req, res) => {
       return res.status(500).json({ message: "Server misconfigured: JWT_SECRET missing" });
     }
 
-    const expiresIn = 60 * 60 * 1;
+    // Token berlaku 30 hari
+    const expiresIn = 60 * 60 * 24 * 30;
 
     const token = jwt.sign(payload, secret, { expiresIn: expiresIn });
     return res.json({
@@ -62,13 +63,31 @@ router.get("/me", accessValidation, async (req, res) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
+    // Fetch full user data from database to include foto_profil and nama_lengkap
+    const fullUser = await prisma.user.findUnique({
+      where: { username: user.username },
+      select: {
+        username: true,
+        email: true,
+        role: true,
+        foto_profil: true,
+        nama_lengkap: true,
+      }
+    });
+
+    if (!fullUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     res.json({
       status: 200,
       message: "User info found",
       data: {
-        username: user.username,
-        email: user.email,
-        role: user.role
+        username: fullUser.username,
+        email: fullUser.email,
+        role: fullUser.role,
+        foto_profil: fullUser.foto_profil,
+        nama_lengkap: fullUser.nama_lengkap,
       }
     });
   } catch (error) {
