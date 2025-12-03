@@ -25,7 +25,7 @@ import karyawanFeatures from './router/karyawan/karyawan-features.js';
 import predict from './router/promotion-ai/predict.js';
 
 config();
-runPrismaMigrateAndSeed();
+//runPrismaMigrateAndSeed();
 const app = express();
 app.use(express.json());
 app.use(corsSetup());

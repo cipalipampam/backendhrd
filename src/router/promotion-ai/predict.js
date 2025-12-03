@@ -131,7 +131,7 @@ router.post("/karyawan/:id", async (req, res) => {
     }
 
     // Fetch karyawan features dari endpoint yang sudah ada
-    const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
+    const baseUrl = `http://localhost:${process.env.PORT || 5000}`;
     const response = await fetch(
       `${baseUrl}/api/karyawan-features/${id}?year=${year}`,
       {
@@ -208,7 +208,7 @@ router.post("/batch", async (req, res) => {
       });
     }
 
-    const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
+    const baseUrl = `http://localhost:${process.env.PORT || 5000}`;
     const response = await fetch(
       `${baseUrl}/api/karyawan-features?year=${year}`,
       {
