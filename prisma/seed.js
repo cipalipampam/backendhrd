@@ -1040,6 +1040,117 @@ async function main() {
   console.log(`  • ~${Math.floor(kehadiranData.length / 10) * 10}+ Kehadiran records (Jan 2024 - Present)`);
   console.log(`  • 17 Izin Requests (15 approved, 2 pending)`);
   console.log("=" .repeat(80));
+
+  // -------------------- Create Database Views --------------------
+  console.log("\n🔍 Creating database views...");
+  
+  try {
+    // View: v_kpi_karyawan_bulanan
+    await prisma.$executeRawUnsafe(`
+      CREATE OR REPLACE VIEW v_kpi_karyawan_bulanan AS
+      SELECT
+          k.id AS karyawanId,
+          k.nama AS namaKaryawan,
+          d.id AS departemenId,
+          d.nama AS departemen,
+
+          kplain.periodeYear AS tahun,
+          LPAD(kplain.periodeMonth, 2, '0') AS bulan,
+
+          COALESCE(p.scorePresensi, 0) AS scorePresensi,
+          COALESCE(t.avgPelatihan, 0) AS scorePelatihan,
+
+          -- KPI Lain (indikator selain presensi & pelatihan)
+          kplain.totalBobotIndikatorLain,
+          kplain.totalScoreIndikatorLain,
+          kplain.kpiIndikatorLain,
+
+          -- ===============================
+          -- KPI FINAL RESMI (sinkron full)
+          -- ===============================
+          LEAST(100, GREATEST(0,
+              CASE
+                  WHEN kplain.kpiIndikatorLain IS NULL THEN
+                      (COALESCE(p.scorePresensi, 0) * 60
+                      + COALESCE(t.avgPelatihan, 0) * 40) / 100
+                  ELSE
+                      0.5 * (
+                          (COALESCE(p.scorePresensi, 0) * 60
+                          + COALESCE(t.avgPelatihan, 0) * 40) / 100
+                      )
+                      +
+                      0.5 * kplain.kpiIndikatorLain
+              END
+          )) AS kpiFinal
+      FROM
+      (
+          -- KPI Lain
+          SELECT
+              kp.karyawanId,
+              kd.periodeYear,
+              kd.periodeMonth,
+              SUM(ki.bobot) AS totalBobotIndikatorLain,
+              SUM(kd.score) AS totalScoreIndikatorLain,
+              AVG(kd.score) AS kpiIndikatorLain
+          FROM kpidetail kd
+          JOIN kpi kp ON kp.id = kd.kpiId
+          JOIN kpiindicator ki ON ki.id = kd.indikatorId
+          WHERE ki.nama NOT IN ('presensi', 'pelatihan')
+          GROUP BY kp.karyawanId, kd.periodeYear, kd.periodeMonth
+      ) kplain
+
+      JOIN karyawan k 
+          ON k.id = kplain.karyawanId
+      LEFT JOIN _departemenonkaryawan dok 
+          ON dok.B = k.id
+      LEFT JOIN departemen d 
+          ON d.id = dok.A
+
+      -- PRESENSI
+      LEFT JOIN
+      (
+          SELECT
+              kh.karyawanId,
+              YEAR(kh.tanggal) AS periodeYear,
+              MONTH(kh.tanggal) AS periodeMonth,
+              SUM(
+                  CASE 
+                      WHEN kh.status = 'HADIR' THEN 100
+                      WHEN kh.status IN ('IZIN','SAKIT') THEN 80
+                      WHEN kh.status = 'TERLAMBAT' THEN 70
+                      WHEN kh.status = 'ALPA' THEN 0
+                      ELSE 0
+                  END
+              ) / COUNT(*) AS scorePresensi
+          FROM kehadiran kh
+          GROUP BY kh.karyawanId, YEAR(kh.tanggal), MONTH(kh.tanggal)
+      ) p
+          ON p.karyawanId = kplain.karyawanId
+         AND p.periodeYear = kplain.periodeYear
+         AND p.periodeMonth = kplain.periodeMonth
+
+      -- PELATIHAN
+      LEFT JOIN
+      (
+          SELECT
+              pd.karyawanId,
+              pd.periodeYear,
+              pd.periodeMonth,
+              AVG(pd.skor) AS avgPelatihan
+          FROM pelatihandetail pd
+          GROUP BY pd.karyawanId, pd.periodeYear, pd.periodeMonth
+      ) t
+          ON t.karyawanId = kplain.karyawanId
+         AND t.periodeYear = kplain.periodeYear
+         AND t.periodeMonth = kplain.periodeMonth
+    `);
+    
+    console.log("✅ View 'v_kpi_karyawan_bulanan' created successfully");
+  } catch (error) {
+    console.error("❌ Failed to create views:", error.message);
+    // Don't fail the entire seeding process if views fail
+    console.log("⚠️  Continuing without views...");
+  }
 }
 
 main()
