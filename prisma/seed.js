@@ -279,12 +279,12 @@ async function main() {
     },
     // 2. Senior Software Engineer
     {
-      username: "karyawan",
-      email: "karyawan@gmail.com",
+      username: "Firman Agung Alamsyah",
+      email: "karyawan1@gmail.com",
       password: "password123",
       role: "KARYAWAN",
       karyawan: {
-        nama: "karyawan",
+        nama: "Firman Agung Alamsyah",
         gender: "Pria",
         alamat: "Jl. Gatot Subroto No. 789, Jakarta Selatan",
         no_telp: "081234567892",
@@ -299,7 +299,7 @@ async function main() {
     // 3.  Senior Account Manager
     {
       username: "jane.smith",
-      email: "jane.smith@company.com",
+      email: "karyawan2@gmail.com",
       password: "password123",
       role: "KARYAWAN",
       karyawan: {
@@ -318,7 +318,7 @@ async function main() {
     // 4. Operations Manager
     {
       username: "lisa.anderson",
-      email: "lisa.anderson@company.com",
+      email: "karyawan3@gmail.com",
       password: "password123",
       role: "KARYAWAN",
       karyawan: {
@@ -337,7 +337,7 @@ async function main() {
     // 5. Data Scientist
     {
       username: "robert.martinez",
-      email: "robert.martinez@company.com",
+      email: "karyawan4@gmail.com",
       password: "password123",
       role: "KARYAWAN",
       karyawan: {
@@ -356,7 +356,7 @@ async function main() {
     // 6. Financial Analyst
     {
       username: "alex.thompson",
-      email: "alex.thompson@company.com",
+      email: "karyawan5@mail.com",
       password: "password123",
       role: "KARYAWAN",
       karyawan: {
