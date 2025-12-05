@@ -261,7 +261,7 @@ async function main() {
     // 1. HR Manager
     {
       username: "sarah.johnson",
-      email: "sarah.johnson@company.com",
+      email: "admin@gmail.com",
       password: "password123",
       role: "HR",
       karyawan: {
@@ -279,12 +279,12 @@ async function main() {
     },
     // 2. Senior Software Engineer
     {
-      username: "john.developer",
-      email: "john.developer@company.com",
+      username: "karyawan",
+      email: "karyawan@gmail.com",
       password: "password123",
       role: "KARYAWAN",
       karyawan: {
-        nama: "John Anderson",
+        nama: "karyawan",
         gender: "Pria",
         alamat: "Jl. Gatot Subroto No. 789, Jakarta Selatan",
         no_telp: "081234567892",
@@ -495,7 +495,7 @@ async function main() {
     { indikatorIndex: 1, target: 97, realisasi: 98, periodeYear: 2025, periodeMonth: 11 },
   ]);
 
-  // 2. John Anderson (Senior Software Engineer)
+  // 2. karyawan (Senior Software Engineer)
   const techIndicators = getIndicatorsByDepartment("Technology");
   await createKPIWithDetails(createdKaryawan[1].id, 2024, 91.5, techIndicators, [
     { indikatorIndex: 0, target: 95, realisasi: 96, periodeYear: 2024, periodeMonth: 3 },
@@ -724,7 +724,7 @@ async function main() {
     {
       nama: "Best Technical Contributor 2024",
       tahun: new Date("2024-12-31"),
-      karyawan: [createdKaryawan[1].id], // John Anderson
+      karyawan: [createdKaryawan[1].id], // karyawan
     },
     {
       nama: "Outstanding Leadership 2024",
@@ -745,7 +745,7 @@ async function main() {
     {
       nama: "Technical Excellence Award 2025",
       tahun: new Date("2025-11-30"),
-      karyawan: [createdKaryawan[1].id], // John Anderson
+      karyawan: [createdKaryawan[1].id], // karyawan
     },
     {
       nama: "HR Leadership Excellence 2025",
@@ -993,9 +993,9 @@ async function main() {
   console.log("\n📋 Test Accounts (6 Users):");
   console.log("=".repeat(80));
   console.log("\n👔 HR Account:");
-  console.log("1. sarah.johnson@company.com / password123 (Sarah Johnson - HR Manager)");
+  console.log("1. admin@gmail.com / password123 (Sarah Johnson - HR Manager)");
   console.log("\n👨‍💼 Karyawan Accounts:");
-  console.log("2. john.developer@company.com / password123 (John Anderson - Senior Software Engineer)");
+  console.log("2. karyawan@gmail.com / password123 (karyawan - Senior Software Engineer)");
   console.log("3. jane.smith@company.com / password123 (Jane Smith - Senior Account Manager)");
   console.log("4. lisa.anderson@company.com / password123 (Lisa Anderson - Operations Manager)");
   console.log("5. robert.martinez@company.com / password123 (Robert Martinez - Data Scientist)");
