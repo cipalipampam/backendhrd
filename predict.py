@@ -36,7 +36,18 @@ def preprocess_input(data, encoders, scaler):
         for feature in categorical_features:
             if feature in encoders and feature in df.columns:
                 le = encoders[feature]
-                df[feature] = le.transform(df[feature])
+                # df[feature] = le.transform(df[feature])
+                
+                # Cek apakah nilai ada di classes_ yang dikenali
+                value = df[feature]. iloc[0]
+                
+                if value in le.classes_:
+                    # Jika nilai dikenali, transform seperti biasa
+                    df[feature] = le.transform(df[feature])
+                else: 
+                    # Jika nilai tidak dikenali, gunakan nilai default (encode 10)
+                    print(f"Warning: Unknown value '{value}' for feature '{feature}'. Using default encoding:  10", file=sys.stderr)
+                    df[feature] = 9
         
         # Urutkan kolom sesuai dengan training
         feature_order = [
